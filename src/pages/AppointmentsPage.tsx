@@ -214,7 +214,7 @@ export const AppointmentsPage: React.FC<{ onRefreshStats?: () => void }> = ({ on
       setError(null);
       setSuccess(null);
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       // 1. Generate daily queue number
       // Query count of queues created today
@@ -563,7 +563,7 @@ export const AppointmentsPage: React.FC<{ onRefreshStats?: () => void }> = ({ on
                     <label className="form-label">วันที่นัดหมาย *</label>
                     <BuddhistDateInput
                       value={formData.appointment_date}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                       onChange={(d) => setFormData({ ...formData, appointment_date: d })}
                       placeholder="เลือกวันนัดหมาย (พ.ศ.)"
                     />

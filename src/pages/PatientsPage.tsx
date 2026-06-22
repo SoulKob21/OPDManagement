@@ -570,7 +570,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
               <label className="form-label">วันเดือนปีเกิด</label>
               <BuddhistDateInput
                 value={formData.date_of_birth}
-                max={new Date().toISOString().split('T')[0]}
+                max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                 onChange={(d) => setFormData({ ...formData, date_of_birth: d })}
                 placeholder="เลือกวันเกิด (พ.ศ.)"
               />

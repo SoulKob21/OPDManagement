@@ -18,10 +18,10 @@ interface DeliveryFormState {
 
 const initialDeliveryForm: DeliveryFormState = {
   delivery_type: 'post',
-  delivery_date: new Date().toISOString().split('T')[0],
+  delivery_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
   prescription_count: 1,
   note: '',
-  print_date: new Date().toISOString().split('T')[0],
+  print_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
 };
 
 interface PatientFormState {
@@ -475,7 +475,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
       };
       // Auto-set print_date when delivered
       if (newStatus === 'delivered') {
-        updatePayload.print_date = new Date().toISOString().split('T')[0];
+        updatePayload.print_date = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
       }
 
       const { error: updateErr } = await supabase
@@ -552,7 +552,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
       const dateB = lastAppointments[b.patient_id] || '';
 
       if (dateA && dateB) {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
         const isFutureA = dateA >= todayStr;
         const isFutureB = dateB >= todayStr;
 
@@ -940,7 +940,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                         <label className="form-label">วันเดือนปีเกิด</label>
                         <BuddhistDateInput
                           value={miniPatientForm.date_of_birth}
-                          max={new Date().toISOString().split('T')[0]}
+                          max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                           onChange={(d) => setMiniPatientForm({ ...miniPatientForm, date_of_birth: d })}
                           placeholder="เลือกวันเกิด (พ.ศ.)"
                         />

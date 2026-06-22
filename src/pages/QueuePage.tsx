@@ -45,7 +45,7 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
     try {
       setLoading(true);
       setError(null);
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       // Fetch today's queues
       const { data, error: qErr } = await supabase
@@ -116,7 +116,7 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
       setSuccess(null);
 
       const qNum = await generateQueueNumber();
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       const { data, error: insertErr } = await supabase
         .from('queues')
@@ -149,7 +149,7 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
   const fetchTodayAppointments = async () => {
     try {
       setLoadingApps(true);
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       // Fetch appointments for today that are scheduled and not already checked in
       const { data, error: appErr } = await supabase
@@ -187,7 +187,7 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
       setSuccess(null);
 
       const qNum = await generateQueueNumber();
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       // 1. Create queue
       const { data, error: insertErr } = await supabase

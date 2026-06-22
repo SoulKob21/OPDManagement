@@ -51,7 +51,7 @@ export const DashboardPage: React.FC = () => {
   const fetchStats = async () => {
     try {
       setLoadingStats(true);
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
       // Fetch patient count
       const { count: totalPat, error: err1 } = await supabase
