@@ -75,9 +75,13 @@ export const ForgotPasswordPage: React.FC = () => {
     <main className="main-content">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-logo">OPD</span>
-          <h1 className="auth-title">Reset Password</h1>
-          <p className="auth-subtitle">Request email recovery instructions</p>
+          <span className="auth-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </span>
+          <h1 className="auth-title">สถาบันบำราศนราดูร</h1>
+          <p className="auth-subtitle">กู้คืนรหัสผ่าน (Reset Password)</p>
         </div>
 
         {error && (

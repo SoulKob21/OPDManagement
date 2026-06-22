@@ -4,6 +4,7 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { supabase, TURNSTILE_SITE_KEY } from '../lib/supabase';
 import { PasswordInput } from '../components/PasswordInput';
+import logoImg from '../assets/LOGO.png';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -92,9 +93,9 @@ export const LoginPage: React.FC = () => {
     <main className="main-content">
       <div className="auth-card">
         <div className="auth-header">
-          <span className="auth-logo">OPD</span>
-          <h1 className="auth-title">Sign In</h1>
-          <p className="auth-subtitle">Secure Access to Patient Information</p>
+          <img src={logoImg} alt="สถาบันบำราศนราดูร Logo" className="bidi-logo" style={{ marginBottom: '1.25rem' }} />
+          <h1 className="auth-title">สถาบันบำราศนราดูร</h1>
+          <p className="auth-subtitle">ระบบจัดการผู้ป่วยนอก (OPD Management)</p>
         </div>
 
         {error && (

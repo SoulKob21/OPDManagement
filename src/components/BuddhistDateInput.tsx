@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface BuddhistDateInputProps {
   value: string; // CE date string YYYY-MM-DD
@@ -33,6 +33,146 @@ const formatToBuddhistDate = (ceDate: string): string => {
   return `${parseInt(day, 10)} ${THAI_MONTHS_SHORT[monthIdx]} ${beYear}`;
 };
 
+const parseBuddhistDateInput = (inputText: string): string | null => {
+  if (!inputText) return null;
+  const text = inputText.trim();
+
+  const hasThai = /[\u0e00-\u0e7f]/.test(text);
+
+  // 1. If it contains Thai characters, parse as Thai text format (e.g. "12 ธ.ค. 2570")
+  if (hasThai) {
+    const parts = text.split(/\s+/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const monthStr = parts[1];
+      const beYear = parseInt(parts[2], 10);
+      const ceYear = beYear - 543;
+      
+      let monthIdx = THAI_MONTHS.findIndex(m => m.includes(monthStr));
+      if (monthIdx === -1) {
+        monthIdx = THAI_MONTHS_SHORT.findIndex(m => m.replace(/\./g, '') === monthStr.replace(/\./g, ''));
+      }
+      
+      if (day >= 1 && day <= 31 && monthIdx !== -1 && ceYear > 1900 && ceYear < 2100) {
+        const month = monthIdx + 1;
+        const dObj = new Date(ceYear, monthIdx, day);
+        if (dObj.getFullYear() === ceYear && dObj.getMonth() === monthIdx && dObj.getDate() === day) {
+          return `${ceYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 2. Check if contains separators (/ or - or .)
+  if (/[\/\-\.]/.test(text)) {
+    const parts = text.split(/[\/\-\.]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      let beYear = parseInt(parts[2], 10);
+      if (isNaN(day) || isNaN(month) || isNaN(beYear)) return null;
+
+      if (beYear < 100) {
+        beYear += 2500;
+      }
+      const ceYear = beYear - 543;
+      
+      // Validate date validity
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && ceYear > 1900 && ceYear < 2100) {
+        const dObj = new Date(ceYear, month - 1, day);
+        if (dObj.getFullYear() === ceYear && dObj.getMonth() === month - 1 && dObj.getDate() === day) {
+          return `${ceYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 3. If it is a raw digit string (4 to 8 digits)
+  if (/^\d+$/.test(text)) {
+    const L = text.length;
+    if (L < 4 || L > 8) return null;
+
+    const tryCandidate = (d: number, m: number, y: number): string | null => {
+      let finalYear = y;
+      if (y < 100) {
+        finalYear += 2500;
+      }
+      const ceYear = finalYear - 543;
+      if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && ceYear > 1900 && ceYear < 2100) {
+        const dObj = new Date(ceYear, m - 1, d);
+        if (dObj.getFullYear() === ceYear && dObj.getMonth() === m - 1 && dObj.getDate() === d) {
+          return `${ceYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+      return null;
+    };
+
+    if (L === 8) {
+      // DDMMYYYY
+      const d = parseInt(text.substring(0, 2), 10);
+      const m = parseInt(text.substring(2, 4), 10);
+      const y = parseInt(text.substring(4, 8), 10);
+      const res = tryCandidate(d, m, y);
+      if (res) return res;
+    } else if (L === 7) {
+      // DDMYYYY or DMMYYYY
+      // Try DDMYYYY first (e.g. 1212570 -> 12, 1, 2570)
+      const d1 = parseInt(text.substring(0, 2), 10);
+      const m1 = parseInt(text.substring(2, 3), 10);
+      const y1 = parseInt(text.substring(3, 7), 10);
+      let res = tryCandidate(d1, m1, y1);
+      if (res) return res;
+
+      // Try DMMYYYY (e.g. 1122570 -> 1, 12, 2570)
+      const d2 = parseInt(text.substring(0, 1), 10);
+      const m2 = parseInt(text.substring(1, 3), 10);
+      const y2 = parseInt(text.substring(3, 7), 10);
+      res = tryCandidate(d2, m2, y2);
+      if (res) return res;
+    } else if (L === 6) {
+      // DDMMYY (e.g. 121270 -> 12, 12, 70)
+      const d1 = parseInt(text.substring(0, 2), 10);
+      const m1 = parseInt(text.substring(2, 4), 10);
+      const y1 = parseInt(text.substring(4, 6), 10);
+      let res = tryCandidate(d1, m1, y1);
+      if (res) return res;
+
+      // DMYYYY (e.g. 112570 -> 1, 1, 2570)
+      const d2 = parseInt(text.substring(0, 1), 10);
+      const m2 = parseInt(text.substring(1, 2), 10);
+      const y2 = parseInt(text.substring(2, 6), 10);
+      res = tryCandidate(d2, m2, y2);
+      if (res) return res;
+    } else if (L === 5) {
+      // DDMYY (e.g. 12170 -> 12, 1, 70)
+      const d1 = parseInt(text.substring(0, 2), 10);
+      const m1 = parseInt(text.substring(2, 3), 10);
+      const y1 = parseInt(text.substring(3, 5), 10);
+      let res = tryCandidate(d1, m1, y1);
+      if (res) return res;
+
+      // DMMYY (e.g. 11270 -> 1, 12, 70)
+      const d2 = parseInt(text.substring(0, 1), 10);
+      const m2 = parseInt(text.substring(1, 3), 10);
+      const y2 = parseInt(text.substring(3, 5), 10);
+      res = tryCandidate(d2, m2, y2);
+      if (res) return res;
+    } else if (L === 4) {
+      // DMYY (e.g. 1170 -> 1, 1, 70)
+      const d = parseInt(text.substring(0, 1), 10);
+      const m = parseInt(text.substring(1, 2), 10);
+      const y = parseInt(text.substring(2, 4), 10);
+      const res = tryCandidate(d, m, y);
+      if (res) return res;
+    }
+    return null;
+  }
+
+  return null;
+};
+
 const getDaysInMonth = (year: number, month: number): number => {
   return new Date(year, month + 1, 0).getDate();
 };
@@ -50,6 +190,7 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [typedValue, setTypedValue] = useState('');
   const [viewYear, setViewYear] = useState(() => {
     if (value) return parseInt(value.split('-')[0], 10);
     return new Date().getFullYear();
@@ -76,6 +217,15 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     return false;
   };
 
+  // Sync typed value with selected CE date value
+  useEffect(() => {
+    if (value) {
+      setTypedValue(formatToBuddhistDate(value));
+    } else {
+      setTypedValue('');
+    }
+  }, [value]);
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -89,21 +239,14 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Determine drop direction
-  const handleOpen = useCallback(() => {
-    if (disabled) return;
-    if (!isOpen && containerRef.current) {
+  // Recalculate drop direction when open
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       setDropUp(spaceBelow < 380);
     }
-    setIsOpen(!isOpen);
-    // Sync view to current value
-    if (!isOpen && value) {
-      setViewYear(parseInt(value.split('-')[0], 10));
-      setViewMonth(parseInt(value.split('-')[1], 10) - 1);
-    }
-  }, [disabled, isOpen, value]);
+  }, [isOpen]);
 
   const handleSelectDate = (day: number) => {
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -142,7 +285,12 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange('');
+    setTypedValue('');
     setIsOpen(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTypedValue(e.target.value);
   };
 
   // Build calendar grid
@@ -152,7 +300,6 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
 
   const calendarDays: { day: number; type: 'prev' | 'current' | 'next'; disabled: boolean }[] = [];
 
-  // Previous month trailing days
   for (let i = firstDay - 1; i >= 0; i--) {
     const d = prevMonthDays - i;
     const prevM = viewMonth === 0 ? 11 : viewMonth - 1;
@@ -160,12 +307,10 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     calendarDays.push({ day: d, type: 'prev', disabled: isDateDisabled(prevY, prevM, d) });
   }
 
-  // Current month days
   for (let d = 1; d <= daysInMonth; d++) {
     calendarDays.push({ day: d, type: 'current', disabled: isDateDisabled(viewYear, viewMonth, d) });
   }
 
-  // Next month leading days
   const remaining = 42 - calendarDays.length;
   for (let d = 1; d <= remaining; d++) {
     const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
@@ -173,14 +318,12 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     calendarDays.push({ day: d, type: 'next', disabled: isDateDisabled(nextY, nextM, d) });
   }
 
-  // Check if a day is selected
   const isSelected = (day: number, type: string): boolean => {
     if (!value || type !== 'current') return false;
     const selectedStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return selectedStr === value;
   };
 
-  // Check if a day is today
   const isToday = (day: number, type: string): boolean => {
     if (type !== 'current') return false;
     const dayStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -189,16 +332,110 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
 
   return (
     <div className="cal-container" ref={containerRef}>
-      {/* Display input */}
+      {/* Input container allowing typing and calendar button */}
       <div
         className={`cal-input ${isOpen ? 'cal-input-active' : ''} ${disabled ? 'cal-input-disabled' : ''}`}
-        onClick={handleOpen}
+        style={{ padding: 0 }}
       >
-        <span className={value ? 'cal-input-value' : 'cal-input-placeholder'}>
-          {value ? formatToBuddhistDate(value) : placeholder}
-        </span>
+        <input
+          type="text"
+          className="form-input"
+          style={{
+            border: 'none',
+            background: 'transparent',
+            outline: 'none',
+            boxShadow: 'none',
+            width: '100%',
+            height: '100%',
+            padding: '0.625rem 0.875rem',
+            fontSize: 'inherit',
+            fontWeight: value ? 500 : 400,
+            color: 'inherit',
+          }}
+          value={typedValue}
+          onChange={handleInputChange}
+          onFocus={() => {
+            if (!disabled) {
+              setIsOpen(true);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (!typedValue.trim()) {
+                onChange('');
+                setTypedValue('');
+                setIsOpen(false);
+                return;
+              }
+              const parsed = parseBuddhistDateInput(typedValue);
+              if (parsed) {
+                onChange(parsed);
+                setTypedValue(formatToBuddhistDate(parsed));
+                setViewYear(parseInt(parsed.split('-')[0], 10));
+                setViewMonth(parseInt(parsed.split('-')[1], 10) - 1);
+              } else {
+                onChange('');
+                setTypedValue('');
+              }
+              setIsOpen(false);
+            } else if (e.key === 'Escape') {
+              setIsOpen(false);
+            }
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              if (!typedValue.trim()) {
+                onChange('');
+                setTypedValue('');
+                return;
+              }
+              const parsed = parseBuddhistDateInput(typedValue);
+              if (parsed) {
+                onChange(parsed);
+                setTypedValue(formatToBuddhistDate(parsed));
+              } else {
+                onChange('');
+                setTypedValue('');
+              }
+            }, 200);
+          }}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
+        {value && !disabled && (
+          <svg
+            className="cal-input-icon cal-clear-icon"
+            onMouseDown={(e) => {
+              // Prevent input from losing focus
+              e.preventDefault();
+            }}
+            onClick={handleClear}
+            style={{ marginRight: '0.375rem', cursor: 'pointer' }}
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        )}
         <svg
           className="cal-input-icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!disabled) {
+              setIsOpen(!isOpen);
+            }
+          }}
+          style={{ marginRight: '0.875rem', cursor: 'pointer' }}
           xmlns="http://www.w3.org/2000/svg"
           width="18"
           height="18"
@@ -222,6 +459,10 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
         <div
           className={`cal-dropdown ${dropUp ? 'cal-dropdown-up' : ''}`}
           ref={calendarRef}
+          onMouseDown={(e) => {
+            // Prevent input from losing focus, which prevents onBlur from clearing the selected date
+            e.preventDefault();
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import type { MedicineDelivery, Patient, Doctor, DeliveryType, DeliveryStatus } from '../types/opd';
 import { DELIVERY_TYPE_LABELS, DELIVERY_STATUS_LABELS, TITLES, MEDICAL_RIGHTS, GENDERS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
+import { ConfirmModal } from '../components/ConfirmModal';
+import * as XLSX from 'xlsx';
 
 type ViewMode = 'list' | 'create';
 
@@ -91,6 +93,9 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   // Last appointment date for new patient registration
   const [lastAppointmentDate, setLastAppointmentDate] = useState('');
 
+  // Custom delete confirmation state
+  const [deleteDeliveryId, setDeleteDeliveryId] = useState<number | null>(null);
+
   // Filter
   const [filterStatus, setFilterStatus] = useState('sent_to_pharmacy');
   const [filterDate, setFilterDate] = useState(() => {
@@ -112,7 +117,12 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
   const [activeDoctorIndex, setActiveDoctorIndex] = useState(-1);
-  const [doctorsList, setDoctorsList] = useState<Doctor[]>(MOCK_DOCTORS);
+  const [doctorsList, setDoctorsList] = useState<Doctor[]>(() => {
+    return [...MOCK_DOCTORS].sort((a, b) => a.id - b.id);
+  });
+
+  // Delivery Type Custom Dropdown State
+  const [showDeliveryTypeDropdown, setShowDeliveryTypeDropdown] = useState(false);
 
   useEffect(() => {
     fetchDeliveries();
@@ -146,7 +156,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
         .from('doctors')
         .select('*')
         .eq('status', 'active')
-        .order('name', { ascending: true });
+        .order('id', { ascending: true });
       if (!error && data && data.length > 0) {
         setDoctorsList(data);
       }
@@ -482,6 +492,27 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     }
   };
 
+  const handleDeleteDelivery = (id: number) => {
+    setDeleteDeliveryId(id);
+  };
+
+  const executeDeleteDelivery = async (id: number) => {
+    try {
+      setError(null);
+      setSuccess(null);
+      const { error: deleteErr } = await supabase
+        .from('medicine_deliveries')
+        .delete()
+        .eq('id', id);
+      if (deleteErr) throw deleteErr;
+      setSuccess('ลบรายการส่งยาสำเร็จ');
+      fetchDeliveries();
+      if (onRefreshStats) onRefreshStats();
+    } catch (err: any) {
+      setError('ไม่สามารถลบรายการได้: ' + err.message);
+    }
+  };
+
   const goToCreate = () => {
     setViewMode('create');
     setSelectedPatient(null);
@@ -497,6 +528,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     setFullNameInput('');
     setShowExtraFields(false);
     setLastAppointmentDate('');
+    setShowDeliveryTypeDropdown(false);
   };
 
   const goToList = () => {
@@ -505,14 +537,48 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     setSelectedDoctor(null);
     setDoctorQuery('');
     setError(null);
+    setShowDeliveryTypeDropdown(false);
   };
 
-  // Filtered deliveries
-  const filteredDeliveries = deliveries.filter((d) => {
-    if (filterStatus && d.status !== filterStatus) return false;
-    if (filterDate && d.delivery_date !== filterDate) return false;
-    return true;
-  });
+  // Filtered and sorted deliveries (sorted by last appointment date descending)
+  const filteredDeliveries = deliveries
+    .filter((d) => {
+      if (filterStatus && d.status !== filterStatus) return false;
+      if (filterDate && d.delivery_date !== filterDate) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = lastAppointments[a.patient_id] || '';
+      const dateB = lastAppointments[b.patient_id] || '';
+
+      if (dateA && dateB) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isFutureA = dateA >= todayStr;
+        const isFutureB = dateB >= todayStr;
+
+        if (isFutureA && isFutureB) {
+          // Both are today or in the future: sort ascending (nearest first)
+          return dateA.localeCompare(dateB);
+        }
+        if (!isFutureA && !isFutureB) {
+          // Both are in the past: sort descending (most recent first)
+          return dateB.localeCompare(dateA);
+        }
+        // Future/today dates come before past dates
+        return isFutureA ? -1 : 1;
+      }
+      // Place empty/no-date items at the end
+      if (dateA && !dateB) return -1;
+      if (!dateA && dateB) return 1;
+
+      // Fallback: sort by delivery date descending, then ID descending
+      const delA = a.delivery_date || '';
+      const delB = b.delivery_date || '';
+      if (delA !== delB) {
+        return delB.localeCompare(delA);
+      }
+      return b.id - a.id;
+    });
 
   // Calculate running sequence based on delivery_date
   const getSequence = (index: number): number => {
@@ -569,23 +635,30 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
       ];
     });
 
-    const csvContent = [
-      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
-      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
+    // Create Excel worksheet using xlsx library
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
 
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
+    // Calculate column widths based on maximum characters (wch)
+    const colWidths = headers.map((header, colIdx) => {
+      const maxLen = Math.max(
+        header.length,
+        ...rows.map(row => {
+          const val = row[colIdx];
+          return val !== null && val !== undefined ? String(val).length : 0;
+        })
+      );
+      // wch is visual width in characters. Adding 3 characters padding, min 10
+      return { wch: Math.max(maxLen + 3, 10) };
+    });
+
+    worksheet['!cols'] = colWidths;
+
+    // Create workbook and download file
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'ประวัติส่งยา');
     
-    const fileName = `medicine_delivery_${filterDate || 'all'}_${filterStatus || 'all'}.csv`;
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const fileName = `medicine_delivery_${filterDate || 'all'}_${filterStatus || 'all'}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   // ========= CREATE VIEW =========
@@ -959,14 +1032,102 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
             </h4>
 
             <div className="opd-form-grid">
-              <div className="form-group">
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label className="form-label">ประเภทการส่ง *</label>
-                <select className="form-select" value={deliveryForm.delivery_type}
-                  onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_type: e.target.value as DeliveryType })}
-                >
-                  <option value="post">ไปรษณีย์</option>
-                  <option value="qr">QR</option>
-                </select>
+                <div className="autocomplete-wrapper">
+                  <button
+                    type="button"
+                    className="form-select"
+                    onClick={() => setShowDeliveryTypeDropdown(!showDeliveryTypeDropdown)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      textAlign: 'left',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      background: 'var(--bg-elevated)',
+                    }}
+                  >
+                    <span>{DELIVERY_TYPE_LABELS[deliveryForm.delivery_type] || 'เลือกประเภทการส่ง'}</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: showDeliveryTypeDropdown ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s',
+                        color: 'var(--text-muted)'
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  
+                  {showDeliveryTypeDropdown && (
+                    <>
+                      <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                        onClick={() => setShowDeliveryTypeDropdown(false)}
+                      />
+                      <div
+                        className="autocomplete-dropdown"
+                        style={{
+                          zIndex: 100,
+                          maxHeight: '300px',
+                          overflowY: 'auto',
+                          padding: '0.25rem',
+                        }}
+                      >
+                        {Object.entries(DELIVERY_TYPE_LABELS).map(([key, label]) => {
+                          const isSelected = deliveryForm.delivery_type === key;
+                          return (
+                            <div
+                              key={key}
+                              className={`autocomplete-item ${isSelected ? 'active' : ''}`}
+                              onClick={() => {
+                                setDeliveryForm({ ...deliveryForm, delivery_type: key as DeliveryType });
+                                setShowDeliveryTypeDropdown(false);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.625rem 0.75rem',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span style={{ fontWeight: isSelected ? 600 : 400 }}>{label}</span>
+                              {isSelected && (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="var(--primary)"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -1186,6 +1347,13 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                           >
                             เปลี่ยนสถานะ
                           </button>
+                          <button
+                            className="btn btn-danger"
+                            style={{ width: 'auto', padding: '0.3rem 0.65rem', fontSize: '0.7rem' }}
+                            onClick={() => handleDeleteDelivery(d.id)}
+                          >
+                            ลบ
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1217,6 +1385,20 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
 
       {viewMode === 'create' && renderCreate()}
       {viewMode === 'list' && renderList()}
+
+      <ConfirmModal
+        isOpen={deleteDeliveryId !== null}
+        onClose={() => setDeleteDeliveryId(null)}
+        onConfirm={() => {
+          if (deleteDeliveryId !== null) {
+            executeDeleteDelivery(deleteDeliveryId);
+          }
+        }}
+        title="ยืนยันการลบประวัติส่งยา"
+        message="คุณต้องการลบรายการส่งยานี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถกู้คืนได้"
+        confirmText="ลบรายการ"
+        cancelText="ยกเลิก"
+      />
     </div>
   );
 };

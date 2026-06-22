@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Doctor } from '../types/opd';
 import { DEPARTMENTS } from '../types/opd';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 type ViewMode = 'list' | 'create' | 'edit';
 
@@ -40,6 +41,9 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
   const [formData, setFormData] = useState<DoctorFormState>(initialFormState);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof DoctorFormState, string>>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Custom delete confirmation state
+  const [deleteDoctor, setDeleteDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -89,7 +93,6 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
       errors.id = 'ID ต้องเป็นตัวเลขเท่านั้น';
     }
     if (!formData.name.trim()) errors.name = 'กรุณาระบุชื่อแพทย์';
-    if (!formData.license_no.trim()) errors.license_no = 'กรุณาระบุเลขใบอนุญาตประกอบวิชาชีพ';
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -108,7 +111,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
         id: parseInt(formData.id.trim(), 10),
         name: formData.name.trim(),
         specialty: formData.specialty,
-        license_no: formData.license_no.trim(),
+        license_no: formData.license_no.trim() || `ว.ระบุภายหลัง-${formData.id.trim()}`,
         phone: formData.phone || null,
         email: formData.email || null,
         status: formData.status,
@@ -148,9 +151,11 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
     }
   };
 
-  const handleDelete = async (doc: Doctor) => {
-    if (!window.confirm(`ยืนยันการลบข้อมูลแพทย์ "${doc.name}" (${doc.license_no}) ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถกู้คืนได้`)) return;
+  const handleDelete = (doc: Doctor) => {
+    setDeleteDoctor(doc);
+  };
 
+  const executeDelete = async (doc: Doctor) => {
     try {
       setError(null);
       setSuccess(null);
@@ -184,7 +189,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
       id: String(doc.id),
       name: doc.name,
       specialty: doc.specialty,
-      license_no: doc.license_no,
+      license_no: doc.license_no.startsWith('ว.ระบุภายหลัง-') ? '' : doc.license_no,
       phone: doc.phone || '',
       email: doc.email || '',
       status: doc.status,
@@ -248,7 +253,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
             </div>
 
             <div className="form-group">
-              <label className="form-label">เลขใบอนุญาต (ว.) *</label>
+              <label className="form-label">เลขใบอนุญาต (ว.)</label>
               <input
                 type="text"
                 className="form-input"
@@ -400,7 +405,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
                   <td>{doc.specialty}</td>
                   <td>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', background: 'var(--primary-subtle)', padding: '2px 8px', borderRadius: '4px' }}>
-                      {doc.license_no}
+                      {doc.license_no.startsWith('ว.ระบุภายหลัง-') ? '—' : doc.license_no}
                     </span>
                   </td>
                   <td>{doc.phone || '—'}</td>
@@ -455,6 +460,28 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
 
       {(viewMode === 'create' || viewMode === 'edit') && renderForm()}
       {viewMode === 'list' && renderList()}
+
+      <ConfirmModal
+        isOpen={deleteDoctor !== null}
+        onClose={() => setDeleteDoctor(null)}
+        onConfirm={() => {
+          if (deleteDoctor !== null) {
+            executeDelete(deleteDoctor);
+          }
+        }}
+        title="ยืนยันการลบข้อมูลแพทย์"
+        message={
+          deleteDoctor && (
+            <>
+              คุณต้องการลบข้อมูลแพทย์ <strong>"{deleteDoctor.name}"</strong> ใช่หรือไม่?
+              <br />
+              การดำเนินการนี้ไม่สามารถกู้คืนได้
+            </>
+          )
+        }
+        confirmText="ลบข้อมูล"
+        cancelText="ยกเลิก"
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Patient, Doctor } from '../types/opd';
 import { TITLES, GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
@@ -68,12 +69,17 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof PatientFormState, string>>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Custom delete confirmation state
+  const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
+
   // Doctor Autocomplete State
   const [doctorQuery, setDoctorQuery] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
   const [activeDoctorIndex, setActiveDoctorIndex] = useState(-1);
-  const [doctorsList, setDoctorsList] = useState<Doctor[]>(MOCK_DOCTORS);
+  const [doctorsList, setDoctorsList] = useState<Doctor[]>(() => {
+    return [...MOCK_DOCTORS].sort((a, b) => a.id - b.id);
+  });
 
   // Fetch doctors from DB (fallback to MOCK_DOCTORS)
   useEffect(() => {
@@ -83,7 +89,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
           .from('doctors')
           .select('*')
           .eq('status', 'active')
-          .order('name', { ascending: true });
+          .order('id', { ascending: true });
         if (!error && data && data.length > 0) {
           setDoctorsList(data);
         }
@@ -302,6 +308,33 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
       setError('ไม่สามารถบันทึกข้อมูลผู้ป่วยได้: ' + (err.message || 'ข้อผิดพลาดเกี่ยวกับสิทธิ์หรือระบบ'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeletePatient = (patient: Patient) => {
+    setDeletePatient(patient);
+  };
+
+  const executeDeletePatient = async (patient: Patient) => {
+    try {
+      setError(null);
+      setSuccess(null);
+      const { error: deleteErr } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patient.id);
+
+      if (deleteErr) throw deleteErr;
+      setSuccess(`ลบข้อมูลผู้ป่วย "${patient.title}${patient.first_name} ${patient.last_name}" สำเร็จ`);
+      fetchPatients();
+      if (viewMode === 'detail') {
+        setViewMode('list');
+        setSelectedPatient(null);
+      }
+      if (onRefreshStats) onRefreshStats();
+    } catch (err: any) {
+      console.error('Error deleting patient:', err);
+      setError('ไม่สามารถลบข้อมูลผู้ป่วยได้: ' + (err.message || 'ข้อผิดพลาดระบบ'));
     }
   };
 
@@ -653,13 +686,22 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
           >
             ← กลับไปหน้ารายชื่อ
           </button>
-          <button
-            className="btn btn-primary"
-            style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8125rem' }}
-            onClick={() => goToEdit(selectedPatient)}
-          >
-            แก้ไขระเบียน
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              className="btn btn-primary"
+              style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8125rem' }}
+              onClick={() => goToEdit(selectedPatient)}
+            >
+              แก้ไขระเบียน
+            </button>
+            <button
+              className="btn btn-danger"
+              style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8125rem' }}
+              onClick={() => handleDeletePatient(selectedPatient)}
+            >
+              ลบระเบียน
+            </button>
+          </div>
         </div>
 
         <div className="dashboard-card">
@@ -846,6 +888,13 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                       >
                         แก้ไข
                       </button>
+                      <button
+                        className="btn btn-danger"
+                        style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                        onClick={() => handleDeletePatient(patient)}
+                      >
+                        ลบ
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -877,6 +926,28 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
       {(viewMode === 'create' || viewMode === 'edit') && renderForm()}
       {viewMode === 'detail' && renderDetail()}
       {viewMode === 'list' && renderList()}
+
+      <ConfirmModal
+        isOpen={deletePatient !== null}
+        onClose={() => setDeletePatient(null)}
+        onConfirm={() => {
+          if (deletePatient !== null) {
+            executeDeletePatient(deletePatient);
+          }
+        }}
+        title="ยืนยันการลบระเบียนผู้ป่วย"
+        message={
+          deletePatient && (
+            <>
+              คุณต้องการลบระเบียนผู้ป่วย <strong>"{deletePatient.title}${deletePatient.first_name} ${deletePatient.last_name}" (HN: {deletePatient.hn})</strong> ใช่หรือไม่?
+              <br />
+              การดำเนินการนี้จะลบประวัติการนัดหมายและคิวทั้งหมดของผู้ป่วยรายนี้ด้วยและไม่สามารถกู้คืนได้
+            </>
+          )
+        }
+        confirmText="ลบระเบียน"
+        cancelText="ยกเลิก"
+      />
     </div>
   );
 };
