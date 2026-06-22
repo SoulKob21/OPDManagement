@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.patients (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     gender TEXT NOT NULL,
-    date_of_birth DATE NOT NULL,
+    date_of_birth DATE,
     phone_number TEXT NOT NULL,
     address TEXT NOT NULL,
     emergency_contact_name TEXT NOT NULL,

@@ -92,8 +92,14 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   const [lastAppointmentDate, setLastAppointmentDate] = useState('');
 
   // Filter
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterStatus, setFilterStatus] = useState('sent_to_pharmacy');
+  const [filterDate, setFilterDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   // Status update
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
@@ -460,6 +466,69 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     if (!dateStr) return '—';
     const d = new Date(dateStr);
     return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleDownloadExcel = () => {
+    if (filteredDeliveries.length === 0) return;
+
+    const headers = [
+      'ลำดับ',
+      'HN',
+      'ชื่อคนไข้',
+      'วันนัดล่าสุด',
+      'แพทย์เจ้าของไข้',
+      'ประเภทการส่ง',
+      'วันที่ส่ง',
+      'หมายเหตุ',
+      'จำนวนใบสั่งยา',
+      'สถานะ',
+      'วันที่พิมพ์'
+    ];
+
+    const rows = filteredDeliveries.map((d, idx) => {
+      const patient = d.patients;
+      const patientName = patient ? `${patient.title}${patient.first_name} ${patient.last_name}` : '—';
+      const lastAppDate = lastAppointments[d.patient_id] ? formatThaiDate(lastAppointments[d.patient_id]) : '—';
+      const primaryDoctor = patient?.primary_doctor || '—';
+      const deliveryType = DELIVERY_TYPE_LABELS[d.delivery_type] || '—';
+      const deliveryDate = formatThaiDate(d.delivery_date);
+      const note = d.note || '—';
+      const prescriptionCount = d.prescription_count;
+      const status = DELIVERY_STATUS_LABELS[d.status] || '—';
+      const printDate = formatThaiDate(d.print_date);
+
+      return [
+        idx + 1,
+        patient?.hn || '—',
+        patientName,
+        lastAppDate,
+        primaryDoctor,
+        deliveryType,
+        deliveryDate,
+        note,
+        prescriptionCount,
+        status,
+        printDate
+      ];
+    });
+
+    const csvContent = [
+      headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const fileName = `medicine_delivery_${filterDate || 'all'}_${filterStatus || 'all'}.csv`;
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // ========= CREATE VIEW =========
@@ -891,10 +960,30 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>ประวัติส่งยา (Medicine Delivery)</h2>
-        <button className="btn btn-primary" onClick={goToCreate} style={{ width: 'auto' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          เพิ่มรายการส่งยา
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleDownloadExcel}
+            disabled={filteredDeliveries.length === 0}
+            style={{
+              width: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            ดาวน์โหลด Excel
+          </button>
+          <button className="btn btn-primary" onClick={goToCreate} style={{ width: 'auto' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            เพิ่มรายการส่งยา
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
