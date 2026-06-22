@@ -141,8 +141,8 @@ export const QUEUE_STATUS_LABELS: Record<QueueStatus, string> = {
 };
 
 // ====== Medicine Delivery ======
-export type DeliveryType = 'pickup' | 'post' | 'rider' | 'other';
-export type DeliveryStatus = 'pending' | 'preparing' | 'shipping' | 'delivered' | 'cancelled';
+export type DeliveryType = 'pharmacy' | 'pickup' | 'post' | 'rider' | 'other';
+export type DeliveryStatus = 'pending' | 'sent_to_pharmacy' | 'preparing' | 'shipping' | 'delivered' | 'cancelled';
 
 export interface MedicineDelivery {
   id: number;
@@ -160,6 +160,7 @@ export interface MedicineDelivery {
 }
 
 export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = {
+  pharmacy: 'ส่งห้องยา',
   pickup: 'รับเอง (Walk-in)',
   post: 'ไปรษณีย์',
   rider: 'จัดส่ง Rider/Grab',
@@ -168,6 +169,7 @@ export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = {
 
 export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
   pending: 'รอดำเนินการ',
+  sent_to_pharmacy: 'ส่งห้องยา',
   preparing: 'กำลังจัดยา',
   shipping: 'กำลังจัดส่ง',
   delivered: 'จัดส่งแล้ว',

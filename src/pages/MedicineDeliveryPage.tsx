@@ -15,11 +15,11 @@ interface DeliveryFormState {
 }
 
 const initialDeliveryForm: DeliveryFormState = {
-  delivery_type: 'pickup',
+  delivery_type: 'pharmacy',
   delivery_date: new Date().toISOString().split('T')[0],
   prescription_count: 1,
   note: '',
-  print_date: '',
+  print_date: new Date().toISOString().split('T')[0],
 };
 
 interface PatientFormState {
@@ -83,6 +83,13 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   const [deliveryForm, setDeliveryForm] = useState<DeliveryFormState>(initialDeliveryForm);
   const [miniPatientForm, setMiniPatientForm] = useState<PatientFormState>(initialPatientForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Full name input & extra fields toggle
+  const [fullNameInput, setFullNameInput] = useState('');
+  const [showExtraFields, setShowExtraFields] = useState(false);
+
+  // Last appointment date for new patient registration
+  const [lastAppointmentDate, setLastAppointmentDate] = useState('');
 
   // Filter
   const [filterStatus, setFilterStatus] = useState('');
@@ -247,6 +254,43 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     setPatientNotFound(false);
   };
 
+  // Parse full name "นายกอไก่ ขอไข่" → { title, first_name, last_name }
+  const parseTitleAndName = (input: string): { title: string; first_name: string; last_name: string } => {
+    const titles = ['นางสาว', 'นาง', 'นาย', 'เด็กหญิง', 'เด็กชาย', 'พระภิกษุ'];
+    let title = 'นาย';
+    let rest = input.trim();
+    for (const t of titles) {
+      if (rest.startsWith(t)) {
+        title = t;
+        rest = rest.slice(t.length).trim();
+        break;
+      }
+    }
+    const parts = rest.split(/\s+/);
+    const first_name = parts[0] || '';
+    const last_name = parts.slice(1).join(' ');
+    return { title, first_name, last_name };
+  };
+
+  const genderFromTitle = (title: string): string => {
+    if (['นาย', 'เด็กชาย', 'พระภิกษุ'].includes(title)) return 'ชาย';
+    if (['นาง', 'นางสาว', 'เด็กหญิง'].includes(title)) return 'หญิง';
+    return 'อื่นๆ';
+  };
+
+  const handleFullNameChange = (value: string) => {
+    setFullNameInput(value);
+    const parsed = parseTitleAndName(value);
+    const gender = genderFromTitle(parsed.title);
+    setMiniPatientForm(prev => ({
+      ...prev,
+      title: parsed.title,
+      first_name: parsed.first_name,
+      last_name: parsed.last_name,
+      gender,
+    }));
+  };
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
@@ -256,9 +300,9 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
 
     if (patientNotFound && !selectedPatient) {
       if (!miniPatientForm.hn.trim()) errors.hn = 'กรุณาระบุ HN';
-      if (!miniPatientForm.first_name.trim()) errors.first_name = 'กรุณาระบุชื่อจริง';
+      if (!miniPatientForm.first_name.trim()) errors.first_name = 'กรุณาระบุชื่อ (พิมพ์ชื่อเต็มด้านบน)';
       if (!miniPatientForm.primary_doctor.trim()) errors.primary_doctor = 'กรุณาระบุแพทย์เจ้าของไข้';
-      if (!miniPatientForm.date_of_birth) errors.date_of_birth = 'กรุณาระบุวันเดือนปีเกิด';
+      if (!lastAppointmentDate) errors.last_appointment_date = 'กรุณาระบุวันนัดหมายล่าสุด';
       if (miniPatientForm.citizen_id.trim() && !/^\d{13}$/.test(miniPatientForm.citizen_id.trim())) {
         errors.citizen_id = 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก';
       }
@@ -387,6 +431,9 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     setDoctorQuery('');
     setFormErrors({});
     setError(null);
+    setFullNameInput('');
+    setShowExtraFields(false);
+    setLastAppointmentDate('');
   };
 
   const goToList = () => {
@@ -501,22 +548,22 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
               </div>
             )}
 
-            {/* Patient Not Found — Full Registration Form */}
+            {/* Patient Not Found — Registration Form */}
             {patientNotFound && !selectedPatient && (
               <div style={{
-                marginTop: '1rem', padding: '1.5rem',
+                marginTop: '1rem', padding: '1.25rem',
                 borderRadius: 'var(--radius-sm)', border: '1.5px dashed var(--accent)',
                 background: 'rgba(139, 92, 246, 0.02)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--accent)' }}>
-                    ไม่พบคนไข้ในระบบ — กรอกข้อมูลด้านล่างเพื่อลงทะเบียนคนไข้ใหม่ (ข้อมูลครบถ้วนเหมือนหน้าลงทะเบียน)
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--accent)' }}>
+                    ไม่พบคนไข้ในระบบ — กรอกข้อมูลเพื่อลงทะเบียนคนไข้ใหม่
                   </span>
                 </div>
 
-                {/* Section 1: Core Identifiers & Doctor */}
-                <div className="opd-form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {/* Row 1: HN + Full name (required) */}
+                <div className="opd-form-grid" style={{ gridTemplateColumns: '160px 1fr' }}>
                   <div className="form-group">
                     <label className="form-label">HN *</label>
                     <input type="text" className="form-input" value={miniPatientForm.hn}
@@ -527,51 +574,54 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label">ชื่อ-นามสกุล * <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.75rem' }}>(พิมพ์ชื่อเต็มพร้อมคำนำหน้า เช่น นายกอไก่ ขอไข่)</span></label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="เช่น นายกอไก่ ขอไข่ หรือ นางสาวสมใจ ดีใจ..."
+                      value={fullNameInput}
+                      onChange={(e) => handleFullNameChange(e.target.value)}
+                    />
+                    {formErrors.first_name && <span className="form-error">{formErrors.first_name}</span>}
+                  </div>
+                </div>
+
+                {/* Row 2: Doctor + Last appointment (required) */}
+                <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  <div className="form-group">
                     <label className="form-label">แพทย์เจ้าของไข้ *</label>
                     {selectedDoctor ? (
-                      <div className="autocomplete-selected-tag" style={{ margin: 0, height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.75rem', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--primary-glow)', background: 'var(--bg-surface-solid)' }}>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                          <span className="autocomplete-item-id" style={{ marginRight: '6px' }}>{selectedDoctor.id}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.75rem', height: '38px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--primary-glow)', background: 'var(--bg-surface-solid)' }}>
+                        <span style={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: '0.75rem', padding: '2px 6px', background: 'var(--primary-subtle)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 600, marginRight: '6px' }}>{selectedDoctor.id}</span>
                           {selectedDoctor.name}
                         </span>
-                        <button type="button" onClick={handleClearDoctor} style={{ border: 'none', background: 'transparent', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }} title="ล้างแพทย์ที่เลือก">&times;</button>
+                        <button type="button" onClick={handleClearDoctor} style={{ border: 'none', background: 'transparent', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
                       </div>
                     ) : (
-                      <div className="autocomplete-wrapper" style={{ position: 'relative' }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="พิมพ์ ID, ชื่อ หรือสาขาเพื่อค้นหาแพทย์..."
+                      <div style={{ position: 'relative' }}>
+                        <input type="text" className="form-input" placeholder="พิมพ์ ID, ชื่อ หรือสาขาเพื่อค้นหาแพทย์..."
                           value={doctorQuery}
-                          onChange={(e) => {
-                            setDoctorQuery(e.target.value);
-                            setShowDoctorDropdown(true);
-                            setActiveDoctorIndex(-1);
-                          }}
+                          onChange={(e) => { setDoctorQuery(e.target.value); setShowDoctorDropdown(true); setActiveDoctorIndex(-1); }}
                           onFocus={() => setShowDoctorDropdown(true)}
                           onBlur={() => setTimeout(() => setShowDoctorDropdown(false), 200)}
                           onKeyDown={handleDoctorKeyDown}
                         />
                         {showDoctorDropdown && (
-                          <div className="autocomplete-dropdown" style={{ zIndex: 100, position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-surface-solid)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-lg)', maxHeight: '200px', overflowY: 'auto' }}>
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--bg-surface-solid)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-lg)', maxHeight: '200px', overflowY: 'auto' }}>
                             {filteredDoctors.length === 0 ? (
-                              <div className="autocomplete-empty" style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>ไม่พบแพทย์ที่ตรงกับ "{doctorQuery}"</div>
-                            ) : (
-                              filteredDoctors.map((doc, idx) => (
-                                <div
-                                  key={doc.id}
-                                  className={`autocomplete-item ${idx === activeDoctorIndex ? 'active' : ''}`}
-                                  onMouseDown={() => handleSelectDoctor(doc)}
-                                  style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)' }}
-                                >
-                                  <span className="autocomplete-item-id" style={{ fontSize: '0.75rem', padding: '2px 6px', background: 'var(--primary-subtle)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 600 }}>{doc.id}</span>
-                                  <div className="autocomplete-item-info">
-                                    <div className="autocomplete-item-name" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{doc.name}</div>
-                                    <div className="autocomplete-item-meta" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{doc.specialty} • {doc.license_no}</div>
-                                  </div>
+                              <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>ไม่พบแพทย์ที่ตรงกับ "{doctorQuery}"</div>
+                            ) : filteredDoctors.map((doc, idx) => (
+                              <div key={doc.id} className={`autocomplete-item ${idx === activeDoctorIndex ? 'active' : ''}`}
+                                onMouseDown={() => handleSelectDoctor(doc)}
+                                style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)' }}>
+                                <span style={{ fontSize: '0.75rem', padding: '2px 6px', background: 'var(--primary-subtle)', color: 'var(--primary)', borderRadius: '4px', fontWeight: 600 }}>{doc.id}</span>
+                                <div>
+                                  <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{doc.name}</div>
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{doc.specialty} • {doc.license_no}</div>
                                 </div>
-                              ))
-                            )}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -580,150 +630,185 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">สถานะของคนไข้</label>
-                    <select className="form-select" value={miniPatientForm.status}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, status: e.target.value as 'active' | 'inactive' })}
-                    >
-                      <option value="active">ใช้งานปกติ (Active)</option>
-                      <option value="inactive">ระงับการใช้งาน (Inactive)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1rem 0' }} />
-                <h5 style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>ข้อมูลส่วนตัว</h5>
-
-                {/* Section 2: Personal Info */}
-                <div className="opd-form-grid" style={{ gridTemplateColumns: '120px 1fr 1fr' }}>
-                  <div className="form-group">
-                    <label className="form-label">คำนำหน้า</label>
-                    <select className="form-select" value={miniPatientForm.title}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, title: e.target.value })}
-                    >
-                      {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">ชื่อจริง *</label>
-                    <input type="text" className="form-input" value={miniPatientForm.first_name}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, first_name: e.target.value })}
-                    />
-                    {formErrors.first_name && <span className="form-error">{formErrors.first_name}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">นามสกุล</label>
-                    <input type="text" className="form-input" value={miniPatientForm.last_name}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, last_name: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr 120px 1fr' }}>
-                  <div className="form-group">
-                    <label className="form-label">เลขบัตรประชาชน</label>
-                    <input type="text" className="form-input" maxLength={13} placeholder="ตัวเลข 13 หลัก"
-                      value={miniPatientForm.citizen_id}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, citizen_id: e.target.value.replace(/\D/g, '') })}
-                    />
-                    {formErrors.citizen_id && <span className="form-error">{formErrors.citizen_id}</span>}
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">เลขหนังสือเดินทาง (Passport)</label>
-                    <input type="text" className="form-input" placeholder="สำหรับคนต่างชาติ"
-                      value={miniPatientForm.passport_number}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, passport_number: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">เพศ</label>
-                    <select className="form-select" value={miniPatientForm.gender}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, gender: e.target.value })}
-                    >
-                      {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">วันเดือนปีเกิด *</label>
+                    <label className="form-label">วันนัดหมายล่าสุด *</label>
                     <BuddhistDateInput
-                      value={miniPatientForm.date_of_birth}
-                      max={new Date().toISOString().split('T')[0]}
-                      onChange={(d) => setMiniPatientForm({ ...miniPatientForm, date_of_birth: d })}
-                      placeholder="เลือกวันเกิด (พ.ศ.)"
+                      value={lastAppointmentDate}
+                      onChange={(d) => setLastAppointmentDate(d)}
+                      placeholder="เลือกวันนัดหมายล่าสุด (พ.ศ.)"
                     />
-                    {formErrors.date_of_birth && <span className="form-error">{formErrors.date_of_birth}</span>}
+                    {formErrors.last_appointment_date && <span className="form-error">{formErrors.last_appointment_date}</span>}
                   </div>
                 </div>
 
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1rem 0' }} />
-                <h5 style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>ข้อมูลการติดต่อ & สิทธิ์การรักษา</h5>
-
-                {/* Section 3: Contact & Rights */}
-                <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr 1fr' }}>
-                  <div className="form-group">
-                    <label className="form-label">เบอร์โทรศัพท์</label>
-                    <input type="tel" className="form-input" value={miniPatientForm.phone_number}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, phone_number: e.target.value })}
-                    />
+                {/* Parsed preview */}
+                {(miniPatientForm.title || miniPatientForm.first_name) && (
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--primary-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>แยกอัตโนมัติ:</span>
+                    <span>คำนำหน้า <strong>{miniPatientForm.title}</strong></span>
+                    <span>ชื่อ <strong>{miniPatientForm.first_name || '—'}</strong></span>
+                    <span>นามสกุล <strong>{miniPatientForm.last_name || '—'}</strong></span>
+                    <span>เพศ <strong>{miniPatientForm.gender}</strong></span>
                   </div>
+                )}
 
-                  <div className="form-group">
-                    <label className="form-label">สิทธิการรักษา</label>
-                    <select className="form-select" value={miniPatientForm.medical_right}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, medical_right: e.target.value })}
-                    >
-                      {MEDICAL_RIGHTS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
+                {/* Toggle extra fields */}
+                <button
+                  type="button"
+                  onClick={() => setShowExtraFields(v => !v)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-secondary)', fontSize: '0.8125rem', fontWeight: 600,
+                    padding: '0.25rem 0', marginBottom: showExtraFields ? '0.75rem' : 0,
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transform: showExtraFields ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  {showExtraFields ? 'ซ่อนข้อมูลเพิ่มเติม' : 'กรอกข้อมูลเพิ่มเติม (ไม่บังคับ)'}
+                </button>
+
+                {showExtraFields && (
+                  <div>
+                    {/* Manual override: title / first_name / last_name / gender */}
+                    <div className="opd-form-grid" style={{ gridTemplateColumns: '120px 1fr 1fr 120px' }}>
+                      <div className="form-group">
+                        <label className="form-label">คำนำหน้า</label>
+                        <select className="form-select" value={miniPatientForm.title}
+                          onChange={(e) => {
+                            const t = e.target.value;
+                            setMiniPatientForm(prev => ({ ...prev, title: t, gender: genderFromTitle(t) }));
+                          }}
+                        >
+                          {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">ชื่อจริง</label>
+                        <input type="text" className="form-input" value={miniPatientForm.first_name}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, first_name: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">นามสกุล</label>
+                        <input type="text" className="form-input" value={miniPatientForm.last_name}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, last_name: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">เพศ</label>
+                        <select className="form-select" value={miniPatientForm.gender}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, gender: e.target.value })}
+                        >
+                          {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="form-group">
+                        <label className="form-label">เลขบัตรประชาชน</label>
+                        <input type="text" className="form-input" maxLength={13} placeholder="ตัวเลข 13 หลัก"
+                          value={miniPatientForm.citizen_id}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, citizen_id: e.target.value.replace(/\D/g, '') })}
+                        />
+                        {formErrors.citizen_id && <span className="form-error">{formErrors.citizen_id}</span>}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">เลขหนังสือเดินทาง</label>
+                        <input type="text" className="form-input" placeholder="สำหรับคนต่างชาติ"
+                          value={miniPatientForm.passport_number}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, passport_number: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="form-group">
+                        <label className="form-label">วันเดือนปีเกิด</label>
+                        <BuddhistDateInput
+                          value={miniPatientForm.date_of_birth}
+                          max={new Date().toISOString().split('T')[0]}
+                          onChange={(d) => setMiniPatientForm({ ...miniPatientForm, date_of_birth: d })}
+                          placeholder="เลือกวันเกิด (พ.ศ.)"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">เบอร์โทรศัพท์</label>
+                        <input type="tel" className="form-input" value={miniPatientForm.phone_number}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, phone_number: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="form-group">
+                        <label className="form-label">สิทธิการรักษา</label>
+                        <select className="form-select" value={miniPatientForm.medical_right}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, medical_right: e.target.value })}
+                        >
+                          {MEDICAL_RIGHTS.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">สถานะคนไข้</label>
+                        <select className="form-select" value={miniPatientForm.status}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, status: e.target.value as 'active' | 'inactive' })}
+                        >
+                          <option value="active">ใช้งานปกติ (Active)</option>
+                          <option value="inactive">ระงับการใช้งาน (Inactive)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                      <div className="form-group">
+                        <label className="form-label">ชื่อผู้ติดต่อฉุกเฉิน</label>
+                        <input type="text" className="form-input" value={miniPatientForm.emergency_contact_name}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, emergency_contact_name: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">เบอร์ผู้ติดต่อฉุกเฉิน</label>
+                        <input type="tel" className="form-input" value={miniPatientForm.emergency_contact_phone}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, emergency_contact_phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">ที่อยู่ปัจจุบัน</label>
+                      <textarea className="form-textarea" rows={2} placeholder="ระบุที่อยู่ปัจจุบัน..."
+                        value={miniPatientForm.address}
+                        onChange={(e) => setMiniPatientForm({ ...miniPatientForm, address: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="opd-form-grid">
+                      <div className="form-group">
+                        <label className="form-label" style={{ color: 'var(--danger-foreground)' }}>ข้อมูลการแพ้ยา</label>
+                        <textarea className="form-textarea" rows={2} placeholder="ระบุยาที่แพ้และอาการ..."
+                          value={miniPatientForm.allergy_note}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, allergy_note: e.target.value })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">โรคประจำตัว</label>
+                        <textarea className="form-textarea" rows={2} placeholder="ระบุโรคประจำตัว..."
+                          value={miniPatientForm.chronic_disease_note}
+                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, chronic_disease_note: e.target.value })}
+                        />
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label">ชื่อผู้ติดต่อฉุกเฉิน</label>
-                    <input type="text" className="form-input" value={miniPatientForm.emergency_contact_name}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, emergency_contact_name: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">เบอร์ผู้ติดต่อฉุกเฉิน</label>
-                    <input type="tel" className="form-input" value={miniPatientForm.emergency_contact_phone}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, emergency_contact_phone: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: '0.25rem' }}>
-                  <label className="form-label">ที่อยู่ปัจจุบัน</label>
-                  <textarea className="form-textarea" rows={2} placeholder="ระบุที่อยู่ปัจจุบัน..."
-                    value={miniPatientForm.address}
-                    onChange={(e) => setMiniPatientForm({ ...miniPatientForm, address: e.target.value })}
-                  />
-                </div>
-
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1rem 0' }} />
-                <h5 style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>ข้อมูลทางคลินิก</h5>
-
-                {/* Section 4: Clinical Info */}
-                <div className="opd-form-grid">
-                  <div className="form-group">
-                    <label className="form-label" style={{ color: 'var(--danger-foreground)' }}>ข้อมูลการแพ้ยา (ถ้ามี)</label>
-                    <textarea className="form-textarea" rows={2} placeholder="ระบุยาที่แพ้และอาการ..."
-                      value={miniPatientForm.allergy_note}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, allergy_note: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">โรคประจำตัว (ถ้ามี)</label>
-                    <textarea className="form-textarea" rows={2} placeholder="ระบุโรคประจำตัว..."
-                      value={miniPatientForm.chronic_disease_note}
-                      onChange={(e) => setMiniPatientForm({ ...miniPatientForm, chronic_disease_note: e.target.value })}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </div>
