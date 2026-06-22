@@ -93,8 +93,8 @@ export const LoginPage: React.FC = () => {
     <main className="main-content">
       <div className="auth-card">
         <div className="auth-header">
-          <img src={logoImg} alt="สถาบันบำราศนราดูร Logo" className="bidi-logo" style={{ marginBottom: '1.25rem' }} />
-          <h1 className="auth-title">สถาบันบำราศนราดูร</h1>
+          <img src={logoImg} alt="BIDI Logo" className="bidi-logo" style={{ marginBottom: '1.25rem' }} />
+          <h1 className="auth-title">OPD MED</h1>
           <p className="auth-subtitle">ระบบจัดการผู้ป่วยนอก (OPD Management)</p>
         </div>
 
