@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public.queues (
 CREATE TABLE IF NOT EXISTS public.medicine_deliveries (
     id SERIAL PRIMARY KEY,
     patient_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
-    delivery_type TEXT NOT NULL DEFAULT 'pickup' CHECK (delivery_type IN ('pharmacy', 'pickup', 'post', 'rider', 'other')),
+    delivery_type TEXT NOT NULL DEFAULT 'pickup' CHECK (delivery_type IN ('pharmacy', 'pickup', 'post', 'rider', 'qr', 'other')),
     delivery_date DATE NOT NULL DEFAULT CURRENT_DATE,
     prescription_count INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent_to_pharmacy', 'preparing', 'shipping', 'delivered', 'cancelled')),

@@ -15,7 +15,7 @@ interface DeliveryFormState {
 }
 
 const initialDeliveryForm: DeliveryFormState = {
-  delivery_type: 'pharmacy',
+  delivery_type: 'post',
   delivery_date: new Date().toISOString().split('T')[0],
   prescription_count: 1,
   note: '',
@@ -118,6 +118,27 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     fetchDeliveries();
     fetchDoctors();
   }, []);
+
+  useEffect(() => {
+    if (selectedPatient) {
+      const fetchPatientLastAppointment = async () => {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('appointment_date')
+          .eq('patient_id', selectedPatient.id)
+          .order('appointment_date', { ascending: false })
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          setLastAppointmentDate(data[0].appointment_date);
+        } else {
+          setLastAppointmentDate('');
+        }
+      };
+      fetchPatientLastAppointment();
+    } else {
+      setLastAppointmentDate('');
+    }
+  }, [selectedPatient]);
 
   const fetchDoctors = async () => {
     try {
@@ -258,6 +279,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     setSearchResults([]);
     setShowSearchResults(false);
     setPatientNotFound(false);
+    setLastAppointmentDate(lastAppointments[patient.id] || '');
   };
 
   // Parse full name "นายกอไก่ ขอไข่" → { title, first_name, last_name }
@@ -368,6 +390,41 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
         return;
       }
 
+      // Save or update the last appointment date
+      if (lastAppointmentDate) {
+        const docName = selectedPatient ? selectedPatient.primary_doctor : miniPatientForm.primary_doctor;
+        const { data: existingApps, error: fetchErr } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('appointment_date', { ascending: false })
+          .limit(1);
+
+        if (!fetchErr && existingApps && existingApps.length > 0) {
+          const latestApp = existingApps[0];
+          await supabase
+            .from('appointments')
+            .update({
+              appointment_date: lastAppointmentDate,
+              doctor_name: docName || latestApp.doctor_name,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', latestApp.id);
+        } else {
+          await supabase
+            .from('appointments')
+            .insert({
+              patient_id: patientId,
+              appointment_date: lastAppointmentDate,
+              appointment_time: '09:00:00',
+              department: 'อายุรกรรม (Medicine)',
+              doctor_name: docName || 'ไม่ระบุแพทย์',
+              reason: 'บันทึกการส่งยา',
+              status: 'completed'
+            });
+        }
+      }
+
       // Create delivery record
       const { error: deliveryErr } = await supabase
         .from('medicine_deliveries')
@@ -378,7 +435,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
           prescription_count: deliveryForm.prescription_count,
           note: deliveryForm.note || null,
           print_date: deliveryForm.print_date || null,
-          status: 'pending',
+          status: 'sent_to_pharmacy',
         });
 
       if (deliveryErr) throw deliveryErr;
@@ -581,6 +638,14 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                   >
                     เปลี่ยนคนไข้
                   </button>
+                </div>
+                <div style={{ marginTop: '0.75rem', maxWidth: '300px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>วันนัดหมายล่าสุด (พ.ศ.)</label>
+                  <BuddhistDateInput
+                    value={lastAppointmentDate}
+                    onChange={(d) => setLastAppointmentDate(d)}
+                    placeholder="แก้ไขวันนัดหมายล่าสุด (ถ้ามี)"
+                  />
                 </div>
               </div>
             ) : (
@@ -899,9 +964,8 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                 <select className="form-select" value={deliveryForm.delivery_type}
                   onChange={(e) => setDeliveryForm({ ...deliveryForm, delivery_type: e.target.value as DeliveryType })}
                 >
-                  {Object.entries(DELIVERY_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
+                  <option value="post">ไปรษณีย์</option>
+                  <option value="qr">QR</option>
                 </select>
               </div>
 
