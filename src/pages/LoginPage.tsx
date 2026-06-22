@@ -191,6 +191,20 @@ export const LoginPage: React.FC = () => {
           >
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
+
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('DEV_BYPASS_LOGIN', 'true');
+                window.location.href = '/dashboard';
+              }}
+              className="btn btn-secondary"
+              style={{ marginTop: '0.75rem', borderColor: 'var(--primary)', fontWeight: 600 }}
+            >
+              ⚡ Bypass Login (Dev mode)
+            </button>
+          )}
         </form>
       </div>
     </main>

@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
+import DiabetesScreeningPage from './pages/DiabetesScreeningPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Import our custom global styles
@@ -50,6 +51,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/DiabetesScreeningPage"
+              element={
+                <ProtectedRoute>
+                  <DiabetesScreeningPage />
                 </ProtectedRoute>
               }
             />

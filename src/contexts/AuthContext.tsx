@@ -13,6 +13,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    // Check if bypass is requested (only allowed in DEV mode)
+    const shouldBypass = import.meta.env.DEV && localStorage.getItem('DEV_BYPASS_LOGIN') === 'true';
+
+    // Dev bypass: skip Supabase auth entirely
+    if (shouldBypass) {
+      setUser({ id: 'dev-user', email: 'dev@localhost' } as User);
+      setSession({} as Session);
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -54,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setLoading(true);
+      localStorage.removeItem('DEV_BYPASS_LOGIN');
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('[Auth] Error signing out:', error.message);

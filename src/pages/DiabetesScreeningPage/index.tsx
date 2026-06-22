@@ -1,33 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import PatientsPage from './PatientsPage';
-import AppointmentsPage from './AppointmentsPage';
-import QueuePage from './QueuePage';
-import DoctorsPage from './DoctorsPage';
-import MedicineDeliveryPage from './MedicineDeliveryPage';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { DmSummaryView } from './DmSummaryView';
+import { DmScreeningListView } from './DmScreeningListView';
+import { DmPlaceholderView } from './DmPlaceholderView';
 
-import logoImg from '../assets/LOGO.png';
+import logoImg from '../../assets/LOGO.png';
 
-export const DashboardPage: React.FC = () => {
+type DmView = 'summary' | 'mock1' | 'mock2' | 'mock3';
+
+export const DiabetesScreeningPage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
-  
-  // Navigation State
-  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'appointments' | 'queues' | 'doctors' | 'deliveries'>(() => {
-    if (location.state && (location.state as any).activeTab) {
-      return (location.state as any).activeTab;
-    }
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries'].includes(tabParam)) {
-      return tabParam as any;
-    }
-    return 'overview';
-  });
+  const [view, setView] = useState<DmView>('summary');
 
   // Sidebar collapsible state
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(() => {
@@ -49,7 +36,7 @@ export const DashboardPage: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // Stats State
   const [stats, setStats] = useState({
     totalPatients: 0,
@@ -106,7 +93,7 @@ export const DashboardPage: React.FC = () => {
         todayDeliveries: todayDel || 0,
       });
     } catch (err) {
-      console.warn('[Dashboard] Could not load stats, tables might not exist yet.');
+      console.warn('[DiabetesScreening] Could not load stats, tables might not exist yet.');
     } finally {
       setLoadingStats(false);
     }
@@ -121,10 +108,12 @@ export const DashboardPage: React.FC = () => {
       setLoggingOut(true);
       await logout();
     } catch (err) {
-      console.error('[Dashboard] Error logging out:', err);
+      console.error('[DiabetesScreening] Error logging out:', err);
       setLoggingOut(false);
     }
   };
+
+  const goToSummary = () => setView('summary');
 
   const renderContent = () => {
     if (dbWarning) {
@@ -145,54 +134,14 @@ export const DashboardPage: React.FC = () => {
       );
     }
 
-    switch (activeTab) {
-      case 'patients':
-        return <PatientsPage onRefreshStats={fetchStats} />;
-      case 'appointments':
-        return <AppointmentsPage onRefreshStats={fetchStats} />;
-      case 'queues':
-        return <QueuePage onRefreshStats={fetchStats} />;
-      case 'doctors':
-        return <DoctorsPage onRefreshStats={fetchStats} />;
-      case 'deliveries':
-        return <MedicineDeliveryPage onRefreshStats={fetchStats} />;
-
-      case 'overview':
-      default:
-        return (
-          <div className="dashboard-card">
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '-0.2px' }}>
-              ยินดีต้อนรับเข้าสู่ระบบ OPD MED
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.75rem', fontSize: '0.875rem' }}>
-              เซสชันได้รับการปกป้องและรักษาความปลอดภัยอย่างถูกต้อง เลือกเมนูด้านซ้ายเพื่อเริ่มต้นทำรายการ
-            </p>
-
-            <div className="dashboard-placeholder" style={{ padding: '2rem 1rem' }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
-              <p style={{ fontWeight: 600, fontSize: '0.9375rem', marginTop: '0.5rem' }}>ระบบพร้อมใช้งาน</p>
-              <p style={{ fontSize: '0.8125rem', marginTop: '0.375rem', color: 'var(--text-secondary)' }}>
-                ท่านสามารถลงทะเบียนคนไข้ใหม่, กำหนดวันนัดหมายแพทย์ล่วงหน้า, และดำเนินการรันลำดับคิวประจำวันได้ทันที
-              </p>
-            </div>
-          </div>
-        );
-    }
+    return (
+      <div>
+        {view === 'summary' && <DmSummaryView onNavigate={(v) => setView(v as DmView)} />}
+        {view === 'mock1' && <DmScreeningListView onBack={goToSummary} />}
+        {view === 'mock2' && <DmPlaceholderView title="Mock Menu 2" onBack={goToSummary} />}
+        {view === 'mock3' && <DmPlaceholderView title="Mock Menu 3" onBack={goToSummary} />}
+      </div>
+    );
   };
 
   return (
@@ -223,27 +172,6 @@ export const DashboardPage: React.FC = () => {
         <div className="header-nav-tabs" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => navigate('/dashboard')}
-            className="top-nav-btn active"
-            style={{
-              background: 'rgba(255, 255, 255, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              borderRadius: '0.375rem',
-              color: '#ffffff',
-              padding: '0.4rem 0.875rem',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              transition: 'all 0.2s',
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span>แดชบอร์ดหลัก (OPD)</span>
-          </button>
-          <button
-            onClick={() => navigate('/DiabetesScreeningPage')}
             className="top-nav-btn"
             style={{
               background: 'rgba(255, 255, 255, 0.08)',
@@ -261,6 +189,27 @@ export const DashboardPage: React.FC = () => {
             }}
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.color = '#ffffff'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = 'rgba(255, 255, 255, 0.85)'; }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>แดชบอร์ดหลัก (OPD)</span>
+          </button>
+          <button
+            onClick={() => navigate('/DiabetesScreeningPage')}
+            className="top-nav-btn active"
+            style={{
+              background: 'rgba(255, 255, 255, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              borderRadius: '0.375rem',
+              color: '#ffffff',
+              padding: '0.4rem 0.875rem',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              transition: 'all 0.2s',
+            }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>คัดกรองเบาหวาน</span>
@@ -292,96 +241,63 @@ export const DashboardPage: React.FC = () => {
 
       {/* Stats row */}
       <div className="stats-row">
-        <div className="stat-card card-patients" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('patients')}>
-          <div className="stat-value">{loadingStats ? '...' : stats.totalPatients}</div>
-          <div className="stat-label">ระเบียนผู้ป่วยทั้งหมด</div>
+        <div className="stat-card card-patients" style={{ cursor: 'pointer' }} onClick={() => setView('mock1')}>
+          <div className="stat-value" style={{ color: 'var(--primary)' }}>1,248</div>
+          <div className="stat-label">ผู้ป่วยคัดกรองทั้งหมด</div>
         </div>
-        <div className="stat-card card-appointments" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('appointments')}>
-          <div className="stat-value">{loadingStats ? '...' : stats.todayAppointments}</div>
-          <div className="stat-label">นัดหมายตรวจวันนี้</div>
+        <div className="stat-card card-queues" style={{ cursor: 'pointer' }} onClick={() => setView('mock2')}>
+          <div className="stat-value" style={{ color: 'var(--accent-2)' }}>327</div>
+          <div className="stat-label">พบความเสี่ยงสูง</div>
         </div>
-        <div className="stat-card card-queues" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('queues')}>
-          <div className="stat-value">{loadingStats ? '...' : stats.activeQueues}</div>
-          <div className="stat-label">คิวที่ยังบริการไม่เสร็จ</div>
+        <div className="stat-card card-deliveries" style={{ cursor: 'pointer' }} onClick={() => setView('mock3')}>
+          <div className="stat-value" style={{ color: 'var(--success)' }}>921</div>
+          <div className="stat-label">ปกติ / ความเสี่ยงต่ำ</div>
         </div>
-        <div className="stat-card card-deliveries" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('deliveries')}>
-          <div className="stat-value">{loadingStats ? '...' : stats.todayDeliveries}</div>
-          <div className="stat-label">รายการส่งยาออกวันนี้</div>
+        <div className="stat-card" style={{ borderLeft: '5px solid var(--danger)' }}>
+          <div className="stat-value" style={{ color: 'var(--danger)' }}>89</div>
+          <div className="stat-label">วินิจฉัย DM ยืนยัน</div>
         </div>
       </div>
 
       <div className="dashboard-grid">
         <aside>
           <nav className="dashboard-nav" aria-label="Dashboard Navigation">
+            {/* Diabetes Screening dashboard navigation */}
             <button
-              className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-              <span>ภาพรวมระบบ</span>
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'patients' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('patients');
-                if (window.innerWidth <= 768) setIsMenuCollapsed(true);
-              }}
-              disabled={dbWarning}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <span>ลงทะเบียนผู้ป่วย</span>
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'appointments' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('appointments');
-                if (window.innerWidth <= 768) setIsMenuCollapsed(true);
-              }}
-              disabled={dbWarning}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span>นัดหมายผู้ป่วย</span>
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'queues' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('queues');
-                if (window.innerWidth <= 768) setIsMenuCollapsed(true);
-              }}
-              disabled={dbWarning}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              <span>จัดการคิว OPD</span>
-            </button>
-
-            <button
-              className={`nav-item ${activeTab === 'deliveries' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('deliveries');
-                if (window.innerWidth <= 768) setIsMenuCollapsed(true);
-              }}
-              disabled={dbWarning}
+              className={`nav-item ${view === 'summary' ? 'active' : ''}`}
+              onClick={() => setView('summary')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
-              <span>ประวัติส่งยา</span>
+              <span>สรุปรายปี</span>
             </button>
-
-            <div style={{ borderTop: '1px solid var(--border-color)', margin: '0.5rem 0' }}></div>
-
             <button
-              className={`nav-item ${activeTab === 'doctors' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('doctors');
-                if (window.innerWidth <= 768) setIsMenuCollapsed(true);
-              }}
-              disabled={dbWarning}
+              className={`nav-item ${view === 'mock1' ? 'active' : ''}`}
+              onClick={() => setView('mock1')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-              <span>จัดการแพทย์</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+              <span>Mock Menu 1</span>
+            </button>
+            <button
+              className={`nav-item ${view === 'mock2' ? 'active' : ''}`}
+              onClick={() => setView('mock2')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+              <span>Mock Menu 2</span>
+            </button>
+            <button
+              className={`nav-item ${view === 'mock3' ? 'active' : ''}`}
+              onClick={() => setView('mock3')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: -2 }} aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+              <span>Mock Menu 3</span>
             </button>
           </nav>
         </aside>
@@ -443,11 +359,9 @@ export const DashboardPage: React.FC = () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: 'middle' }}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           โทร: 02-5903000 ต่อ 3543
         </div>
-
       </footer>
     </div>
   );
 };
 
-export default DashboardPage;
-
+export default DiabetesScreeningPage;
