@@ -38,64 +38,25 @@ export const DiabetesScreeningPage: React.FC = () => {
   }, []);
 
   // Stats State
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    todayAppointments: 0,
-    activeQueues: 0,
-    todayDeliveries: 0,
-  });
-  const [loadingStats, setLoadingStats] = useState(false);
   const [dbWarning, setDbWarning] = useState<boolean>(false);
 
   const fetchStats = async () => {
     try {
-      setLoadingStats(true);
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      // Fetch patient count
-      const { count: totalPat, error: err1 } = await supabase
+      // Fetch patient count to check database connection
+      const { error } = await supabase
         .from('patients')
         .select('*', { count: 'exact', head: true });
 
-      if (err1) {
-        if (err1.message.includes('public.patients') || err1.message.includes('schema cache')) {
+      if (error) {
+        if (error.message.includes('public.patients') || error.message.includes('schema cache')) {
           setDbWarning(true);
         }
-        throw err1;
+        throw error;
       } else {
         setDbWarning(false);
       }
-
-      // Fetch today's appointments
-      const { count: todayApp } = await supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .eq('appointment_date', todayStr);
-
-      // Fetch active queues (non-completed and non-cancelled)
-      const { count: actQ } = await supabase
-        .from('queues')
-        .select('*', { count: 'exact', head: true })
-        .eq('queue_date', todayStr)
-        .neq('status', 'completed')
-        .neq('status', 'cancelled');
-
-      // Fetch today's medicine deliveries
-      const { count: todayDel } = await supabase
-        .from('medicine_deliveries')
-        .select('*', { count: 'exact', head: true })
-        .eq('delivery_date', todayStr);
-
-      setStats({
-        totalPatients: totalPat || 0,
-        todayAppointments: todayApp || 0,
-        activeQueues: actQ || 0,
-        todayDeliveries: todayDel || 0,
-      });
     } catch (err) {
       console.warn('[DiabetesScreening] Could not load stats, tables might not exist yet.');
-    } finally {
-      setLoadingStats(false);
     }
   };
 
@@ -136,7 +97,7 @@ export const DiabetesScreeningPage: React.FC = () => {
 
     return (
       <div>
-        {view === 'summary' && <DmSummaryView onNavigate={(v) => setView(v as DmView)} />}
+        {view === 'summary' && <DmSummaryView />}
         {view === 'mock1' && <DmScreeningListView onBack={goToSummary} />}
         {view === 'mock2' && <DmPlaceholderView title="Mock Menu 2" onBack={goToSummary} />}
         {view === 'mock3' && <DmPlaceholderView title="Mock Menu 3" onBack={goToSummary} />}

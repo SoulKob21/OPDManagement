@@ -1,10 +1,6 @@
 import React from 'react';
 
-interface DmSummaryViewProps {
-  onNavigate: (view: string) => void;
-}
-
-export const DmSummaryView: React.FC<DmSummaryViewProps> = ({ onNavigate }) => (
+export const DmSummaryView: React.FC = () => (
   <div>
     <div className="dashboard-card" style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
