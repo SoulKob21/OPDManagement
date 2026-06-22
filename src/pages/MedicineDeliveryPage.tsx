@@ -106,6 +106,14 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
     return `${year}-${month}-${day}`;
   });
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterDate, filterStatus]);
+
   // Status update
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
 
@@ -579,6 +587,13 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
       }
       return b.id - a.id;
     });
+
+  // Paginate filtered deliveries
+  const totalItems = filteredDeliveries.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const safeCurrentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedDeliveries = filteredDeliveries.slice(startIndex, startIndex + pageSize);
 
   // Calculate running sequence based on delivery_date
   const getSequence = (index: number): number => {
@@ -1283,7 +1298,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                 </tr>
               </thead>
               <tbody>
-                {filteredDeliveries.map((d, idx) => {
+                {paginatedDeliveries.map((d, idx) => {
                   const patient = d.patients;
                   const statusClass =
                     d.status === 'delivered' ? 'badge-status-completed' :
@@ -1293,7 +1308,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
 
                   return (
                     <tr key={d.id}>
-                      <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>{getSequence(idx)}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>{getSequence(startIndex + idx)}</td>
                       <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{patient?.hn || '—'}</td>
                       <td>{patient ? `${patient.title}${patient.first_name} ${patient.last_name}` : '—'}</td>
                       <td style={{ fontSize: '0.8125rem' }}>{formatThaiDate(lastAppointments[d.patient_id])}</td>
@@ -1364,6 +1379,101 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {filteredDeliveries.length > 0 && (
+        <div className="tail-pagination">
+          <div className="tail-pagination-left">
+            <div className="tail-pagination-info">
+              แสดง {startIndex + 1} ถึง {Math.min(startIndex + pageSize, totalItems)} จากทั้งหมด {totalItems} รายการ
+            </div>
+            <div className="tail-pagination-select-wrapper">
+              <span>แสดงหน้าละ:</span>
+              <select
+                className="tail-pagination-select"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="tail-pagination-actions">
+            <button
+              type="button"
+              className="tail-pagination-btn"
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage === 1}
+              title="หน้าแรก"
+            >
+              &laquo;
+            </button>
+            <button
+              type="button"
+              className="tail-pagination-btn"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={safeCurrentPage === 1}
+              title="ก่อนหน้า"
+            >
+              &lsaquo;
+            </button>
+
+            {/* Display page buttons dynamically */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => {
+                // Show first page, last page, current page, and pages around current page
+                return p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1;
+              })
+              .map((p, idx, arr) => {
+                const elements = [];
+                // Add ellipsis if there's a gap between page numbers
+                if (idx > 0 && p - arr[idx - 1] > 1) {
+                  elements.push(
+                    <span key={`ellipsis-${p}`} style={{ padding: '0 0.5rem', color: 'var(--text-muted)' }}>
+                      ...
+                    </span>
+                  );
+                }
+                elements.push(
+                  <button
+                    type="button"
+                    key={p}
+                    className={`tail-pagination-btn ${safeCurrentPage === p ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(p)}
+                  >
+                    {p}
+                  </button>
+                );
+                return elements;
+              })}
+
+            <button
+              type="button"
+              className="tail-pagination-btn"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={safeCurrentPage === totalPages}
+              title="ถัดไป"
+            >
+              &rsaquo;
+            </button>
+            <button
+              type="button"
+              className="tail-pagination-btn"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage === totalPages}
+              title="หน้าสุดท้าย"
+            >
+              &raquo;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
