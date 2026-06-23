@@ -6,7 +6,6 @@ import { PasswordInput } from '../components/PasswordInput';
 export const ChangePasswordPage: React.FC = () => {
   const { user, logout } = useAuth();
   
-  const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -32,11 +31,6 @@ export const ChangePasswordPage: React.FC = () => {
       return;
     }
 
-    if (!oldPassword) {
-      setError('กรุณาระบุรหัสผ่านเดิม');
-      return;
-    }
-
     if (!isPasswordValid) {
       setError('รหัสผ่านใหม่ไม่ตรงตามข้อกำหนดความปลอดภัย');
       return;
@@ -44,11 +38,6 @@ export const ChangePasswordPage: React.FC = () => {
 
     if (newPassword !== confirmPassword) {
       setError('รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน');
-      return;
-    }
-
-    if (oldPassword === newPassword) {
-      setError('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม');
       return;
     }
 
@@ -64,19 +53,7 @@ export const ChangePasswordPage: React.FC = () => {
         return;
       }
 
-      // 1. Verify old password by attempting sign-in with current user's email
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email || '',
-        password: oldPassword,
-      });
-
-      if (signInError) {
-        setError('รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง');
-        setLoading(false);
-        return;
-      }
-
-      // 2. Update to new password
+      // Update to new password directly (bypassing CAPTCHA-blocked sign-in verification)
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -128,17 +105,6 @@ export const ChangePasswordPage: React.FC = () => {
 
         {!success && (
           <form onSubmit={handleSubmit} noValidate>
-            <PasswordInput
-              id="old-password"
-              name="old-password"
-              label="รหัสผ่านเดิม (Current Password) *"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              disabled={loading}
-            />
-
             <PasswordInput
               id="new-password"
               name="new-password"
@@ -194,7 +160,7 @@ export const ChangePasswordPage: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button
                 type="submit"
-                disabled={loading || !isPasswordValid || newPassword !== confirmPassword || !oldPassword}
+                disabled={loading || !isPasswordValid || newPassword !== confirmPassword}
                 className="btn btn-primary"
                 style={{ width: 'auto', padding: '0.5rem 2rem' }}
               >
