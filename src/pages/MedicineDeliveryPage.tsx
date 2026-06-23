@@ -301,17 +301,51 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   };
 
   // Parse full name "นายกอไก่ ขอไข่" → { title, first_name, last_name }
+  // Supports custom abbreviations, ranks, or special prefix titles (e.g. พญ., นพ., ดร., ร.ต.อ.)
   const parseTitleAndName = (input: string): { title: string; first_name: string; last_name: string } => {
-    const titles = ['นางสาว', 'นาง', 'นาย', 'เด็กหญิง', 'เด็กชาย', 'พระภิกษุ'];
-    let title = 'นาย';
-    let rest = input.trim();
-    for (const t of titles) {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return { title: 'นาย', first_name: '', last_name: '' };
+    }
+
+    // 1. Check for titles/ranks ending with a dot (e.g., พญ., นพ., ดร., ร.ต.อ., พล.ต.ต.)
+    // We use a greedy match on letters and dots ending with a dot to capture compound titles.
+    const dotTitleRegex = /^([ก-ฮa-zA-Z\.]+\.)\s*(.*)$/;
+    const dotMatch = trimmed.match(dotTitleRegex);
+    if (dotMatch) {
+      const title = dotMatch[1];
+      const rest = dotMatch[2].trim();
+      const parts = rest.split(/\s+/);
+      const first_name = parts[0] || '';
+      const last_name = parts.slice(1).join(' ');
+      return { title, first_name, last_name };
+    }
+
+    // 2. Check for standard Thai titles and other known prefix words without dots
+    const standardTitles = [
+      'นางสาว', 'นาง', 'นาย', 'เด็กหญิง', 'เด็กชาย', 'พระภิกษุ', 'พระ', 'คุณ',
+      'นายแพทย์', 'แพทย์หญิง', 'ศาสตราจารย์', 'รองศาสตราจารย์', 'ผู้ช่วยศาสตราจารย์',
+      'พลเอก', 'พลโท', 'พลตรี', 'พันเอก', 'พันโท', 'พันตรี', 'ร้อยเอก', 'ร้อยโท', 'ร้อยตรี',
+      'พลตำรวจเอก', 'พลตำรวจโท', 'พลตำรวจตรี', 'พันตำรวจเอก', 'พันตำรวจโท', 'พันตำรวจตรี',
+      'ร้อยตำรวจเอก', 'ร้อยตำรวจโท', 'ร้อยตำรวจตรี', 'ดาบตำรวจ', 'จ่าสิบตำรวจ', 'นายดาบ',
+      'พญ', 'นพ', 'ดร', 'ศ', 'รศ', 'ผศ', 'ทพ', 'ทพญ', 'ภก', 'ภญ', 'สพญ', 'คุณครู', 'ครู'
+    ];
+
+    let title = '';
+    let rest = trimmed;
+    for (const t of standardTitles) {
       if (rest.startsWith(t)) {
         title = t;
         rest = rest.slice(t.length).trim();
         break;
       }
     }
+
+    // Default to 'นาย' if no recognizable prefix is found
+    if (!title) {
+      title = 'นาย';
+    }
+
     const parts = rest.split(/\s+/);
     const first_name = parts[0] || '';
     const last_name = parts.slice(1).join(' ');
@@ -319,8 +353,26 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   };
 
   const genderFromTitle = (title: string): string => {
-    if (['นาย', 'เด็กชาย', 'พระภิกษุ'].includes(title)) return 'ชาย';
-    if (['นาง', 'นางสาว', 'เด็กหญิง'].includes(title)) return 'หญิง';
+    const cleanTitle = title.trim();
+    
+    // Male prefixes
+    if (
+      ['นาย', 'เด็กชาย', 'พระภิกษุ', 'พระ', 'นพ', 'นพ.', 'นายแพทย์'].includes(cleanTitle) ||
+      cleanTitle.includes('นาย') ||
+      cleanTitle.includes('เด็กชาย')
+    ) {
+      return 'ชาย';
+    }
+    
+    // Female prefixes
+    if (
+      ['นาง', 'นางสาว', 'เด็กหญิง', 'พญ', 'พญ.', 'แพทย์หญิง'].includes(cleanTitle) ||
+      cleanTitle.includes('นาง') ||
+      cleanTitle.includes('เด็กหญิง')
+    ) {
+      return 'หญิง';
+    }
+    
     return 'อื่นๆ';
   };
 
