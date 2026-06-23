@@ -156,3 +156,28 @@ CREATE POLICY "Allow authenticated users to update medicine_deliveries" ON publi
     FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow authenticated users to delete medicine_deliveries" ON public.medicine_deliveries 
     FOR DELETE TO authenticated USING (true);
+
+-- ====================================================================
+-- 5. User Permissions Table
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.user_permissions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE,
+    allowed_menus TEXT[] NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.user_permissions ENABLE ROW LEVEL SECURITY;
+
+-- User Permissions RLS Policies
+CREATE POLICY "Allow authenticated users to read user_permissions" ON public.user_permissions 
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert user_permissions" ON public.user_permissions 
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to update user_permissions" ON public.user_permissions 
+    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to delete user_permissions" ON public.user_permissions 
+    FOR DELETE TO authenticated USING (true);
+

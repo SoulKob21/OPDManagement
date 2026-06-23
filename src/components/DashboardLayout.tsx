@@ -5,7 +5,7 @@ import logoImg from '../assets/LOGO.png';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  activeMenu: 'overview' | 'patients' | 'appointments' | 'queues' | 'deliveries' | 'diabetes-screening' | 'doctors';
+  activeMenu: 'overview' | 'patients' | 'appointments' | 'queues' | 'deliveries' | 'diabetes-screening' | 'doctors' | 'permissions';
   activeSubMenu?: 'summary' | 'mock1' | 'mock2' | 'mock3';
   title?: string;
 }
@@ -16,9 +16,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   activeSubMenu,
   title = 'ระบบจัดการผู้ป่วยนอก (OPD)'
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, allowedMenus } = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const isAllowed = (menu: string) => {
+    if (allowedMenus === null) return true;
+    return allowedMenus.includes(menu);
+  };
+
+  useEffect(() => {
+    if (allowedMenus !== null && activeMenu !== 'overview' && !allowedMenus.includes(activeMenu)) {
+      console.warn(`[DashboardLayout] Unauthorized menu access attempt to: ${activeMenu}. Redirecting...`);
+      navigate('/dashboard?tab=overview', { replace: true });
+    }
+  }, [activeMenu, allowedMenus, navigate]);
 
   // Diabetes submenu expanded state
   const [isDiabetesOpen, setIsDiabetesOpen] = useState(activeMenu === 'diabetes-screening');
@@ -79,6 +91,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     navigate(`/DiabetesScreeningPage?view=${view}`);
   };
 
+  const hasMenuSection = isAllowed('overview') || isAllowed('patients') || isAllowed('appointments') || isAllowed('queues') || isAllowed('deliveries');
+  const hasManagementSection = isAllowed('doctors') || isAllowed('permissions');
+
   return (
     <div className="tail-layout">
       {/* Mobile Sidebar Overlay Backdrop */}
@@ -107,154 +122,186 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
         <div className="tail-sidebar-menu-wrapper">
           {/* Main Menu Group */}
-          <div className="tail-menu-group">
-            <span className="tail-menu-group-title">MENU</span>
-            <ul className="tail-menu-list">
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'overview' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('overview')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                  </svg>
-                  <span>ภาพรวมระบบ</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'patients' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('patients')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                  <span>ลงทะเบียนผู้ป่วย</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'appointments' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('appointments')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  <span>นัดหมายผู้ป่วย</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'queues' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('queues')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                  </svg>
-                  <span>จัดการคิว OPD</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'deliveries' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('deliveries')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                  </svg>
-                  <span>ประวัติส่งยา</span>
-                </button>
-              </li>
-            </ul>
-          </div>
+          {hasMenuSection && (
+            <div className="tail-menu-group">
+              <span className="tail-menu-group-title">MENU</span>
+              <ul className="tail-menu-list">
+                {isAllowed('overview') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'overview' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('overview')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                      </svg>
+                      <span>ภาพรวมระบบ</span>
+                    </button>
+                  </li>
+                )}
+                {isAllowed('patients') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'patients' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('patients')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                      <span>ลงทะเบียนผู้ป่วย</span>
+                    </button>
+                  </li>
+                )}
+                {isAllowed('appointments') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'appointments' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('appointments')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span>นัดหมายผู้ป่วย</span>
+                    </button>
+                  </li>
+                )}
+                {isAllowed('queues') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'queues' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('queues')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                      </svg>
+                      <span>จัดการคิว OPD</span>
+                    </button>
+                  </li>
+                )}
+                {isAllowed('deliveries') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'deliveries' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('deliveries')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                      <span>ประวัติส่งยา</span>
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           {/* Specialized Services Group */}
-          <div className="tail-menu-group">
-            <span className="tail-menu-group-title">SPECIALIZED</span>
-            <ul className="tail-menu-list">
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('diabetes-screening')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                  </svg>
-                  <span>คัดกรองเบาหวาน</span>
-                  <svg className={`tail-chevron-icon ${isDiabetesOpen ? 'rotate' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
+          {isAllowed('diabetes-screening') && (
+            <div className="tail-menu-group">
+              <span className="tail-menu-group-title">SPECIALIZED</span>
+              <ul className="tail-menu-list">
+                <li>
+                  <button
+                    className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' ? 'active' : ''}`}
+                    onClick={() => handleMenuClick('diabetes-screening')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span>คัดกรองเบาหวาน</span>
+                    <svg className={`tail-chevron-icon ${isDiabetesOpen ? 'rotate' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
 
-                {isDiabetesOpen && (
-                  <ul className="tail-submenu-list">
-                    <li>
-                      <button
-                        className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'summary' ? 'active' : ''}`}
-                        onClick={() => handleSubMenuClick('summary')}
-                      >
-                        สรุปรายปี
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock1' ? 'active' : ''}`}
-                        onClick={() => handleSubMenuClick('mock1')}
-                      >
-                        Mock Menu 1
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock2' ? 'active' : ''}`}
-                        onClick={() => handleSubMenuClick('mock2')}
-                      >
-                        Mock Menu 2
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock3' ? 'active' : ''}`}
-                        onClick={() => handleSubMenuClick('mock3')}
-                      >
-                        Mock Menu 3
-                      </button>
-                    </li>
-                  </ul>
-                )}
-              </li>
-            </ul>
-          </div>
+                  {isDiabetesOpen && (
+                    <ul className="tail-submenu-list">
+                      <li>
+                        <button
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'summary' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('summary')}
+                        >
+                          สรุปรายปี
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock1' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('mock1')}
+                        >
+                          Mock Menu 1
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock2' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('mock2')}
+                        >
+                          Mock Menu 2
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock3' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('mock3')}
+                        >
+                          Mock Menu 3
+                        </button>
+                      </li>
+                    </ul>
+                  )}
+                </li>
+              </ul>
+            </div>
+          )}
 
           {/* Management Group */}
-          <div className="tail-menu-group">
-            <span className="tail-menu-group-title">MANAGEMENT</span>
-            <ul className="tail-menu-list">
-              <li>
-                <button
-                  className={`tail-menu-item-btn ${activeMenu === 'doctors' ? 'active' : ''}`}
-                  onClick={() => handleMenuClick('doctors')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                  </svg>
-                  <span>จัดการแพทย์</span>
-                </button>
-              </li>
-            </ul>
-          </div>
+          {hasManagementSection && (
+            <div className="tail-menu-group">
+              <span className="tail-menu-group-title">MANAGEMENT</span>
+              <ul className="tail-menu-list">
+                {isAllowed('doctors') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'doctors' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('doctors')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                      </svg>
+                      <span>จัดการแพทย์</span>
+                    </button>
+                  </li>
+                )}
+                {isAllowed('permissions') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'permissions' ? 'active' : ''}`}
+                      onClick={() => handleMenuClick('permissions')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                      </svg>
+                      <span>จัดการสิทธิ์</span>
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
       </aside>
 

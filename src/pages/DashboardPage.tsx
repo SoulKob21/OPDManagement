@@ -6,19 +6,27 @@ import AppointmentsPage from './AppointmentsPage';
 import QueuePage from './QueuePage';
 import DoctorsPage from './DoctorsPage';
 import MedicineDeliveryPage from './MedicineDeliveryPage';
+import PermissionsPage from './PermissionsPage';
 import { DashboardLayout } from '../components/DashboardLayout';
+import { useAuth } from '../contexts/AuthContext';
 
 export const DashboardPage: React.FC = () => {
   const location = useLocation();
+  const { allowedMenus } = useAuth();
+  
+  const isAllowed = (menu: string) => {
+    if (allowedMenus === null) return true;
+    return allowedMenus.includes(menu);
+  };
   
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'appointments' | 'queues' | 'doctors' | 'deliveries'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'appointments' | 'queues' | 'doctors' | 'deliveries' | 'permissions'>(() => {
     if (location.state && (location.state as any).activeTab) {
       return (location.state as any).activeTab;
     }
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries'].includes(tabParam)) {
+    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions'].includes(tabParam)) {
       return tabParam as any;
     }
     return 'overview';
@@ -28,7 +36,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries'].includes(tabParam)) {
+    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     } else if (location.state && (location.state as any).activeTab) {
       setActiveTab((location.state as any).activeTab);
@@ -134,6 +142,8 @@ export const DashboardPage: React.FC = () => {
         return <DoctorsPage onRefreshStats={fetchStats} />;
       case 'deliveries':
         return <MedicineDeliveryPage onRefreshStats={fetchStats} />;
+      case 'permissions':
+        return <PermissionsPage />;
 
       case 'overview':
       default:
@@ -177,19 +187,35 @@ export const DashboardPage: React.FC = () => {
     <DashboardLayout activeMenu={activeTab} title="แดชบอร์ดหลัก (OPD)">
       {/* Stats row */}
       <div className="stats-row">
-        <div className="stat-card card-patients" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('patients')}>
+        <div 
+          className="stat-card card-patients" 
+          style={{ cursor: isAllowed('patients') ? 'pointer' : 'default', opacity: isAllowed('patients') ? 1 : 0.6 }} 
+          onClick={() => !dbWarning && isAllowed('patients') && setActiveTab('patients')}
+        >
           <div className="stat-value">{loadingStats ? '...' : stats.totalPatients}</div>
           <div className="stat-label">ระเบียนผู้ป่วยทั้งหมด</div>
         </div>
-        <div className="stat-card card-appointments" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('appointments')}>
+        <div 
+          className="stat-card card-appointments" 
+          style={{ cursor: isAllowed('appointments') ? 'pointer' : 'default', opacity: isAllowed('appointments') ? 1 : 0.6 }} 
+          onClick={() => !dbWarning && isAllowed('appointments') && setActiveTab('appointments')}
+        >
           <div className="stat-value">{loadingStats ? '...' : stats.todayAppointments}</div>
           <div className="stat-label">นัดหมายตรวจวันนี้</div>
         </div>
-        <div className="stat-card card-queues" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('queues')}>
+        <div 
+          className="stat-card card-queues" 
+          style={{ cursor: isAllowed('queues') ? 'pointer' : 'default', opacity: isAllowed('queues') ? 1 : 0.6 }} 
+          onClick={() => !dbWarning && isAllowed('queues') && setActiveTab('queues')}
+        >
           <div className="stat-value">{loadingStats ? '...' : stats.activeQueues}</div>
           <div className="stat-label">คิวที่ยังบริการไม่เสร็จ</div>
         </div>
-        <div className="stat-card card-deliveries" style={{ cursor: 'pointer' }} onClick={() => !dbWarning && setActiveTab('deliveries')}>
+        <div 
+          className="stat-card card-deliveries" 
+          style={{ cursor: isAllowed('deliveries') ? 'pointer' : 'default', opacity: isAllowed('deliveries') ? 1 : 0.6 }} 
+          onClick={() => !dbWarning && isAllowed('deliveries') && setActiveTab('deliveries')}
+        >
           <div className="stat-value">{loadingStats ? '...' : stats.todayDeliveries}</div>
           <div className="stat-label">รายการส่งยาออกวันนี้</div>
         </div>

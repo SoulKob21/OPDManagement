@@ -9,6 +9,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [allowedMenus, setAllowedMenus] = useState<string[] | null | undefined>(undefined);
+
+  const fetchUserPermissions = async (userId: string, email?: string) => {
+    try {
+      const conditions = email
+        ? `user_id.eq."${userId}",user_id.eq."${email}"`
+        : `user_id.eq."${userId}"`;
+
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('allowed_menus')
+        .or(conditions);
+
+      if (error) {
+        console.warn('[Auth] Error fetching user permissions:', error.message);
+        setAllowedMenus(null);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setAllowedMenus(data[0].allowed_menus);
+      } else {
+        setAllowedMenus(null);
+      }
+    } catch (err) {
+      console.error('[Auth] Unexpected error fetching permissions:', err);
+      setAllowedMenus(null);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUserPermissions(user.id, user.email);
+    } else {
+      setAllowedMenus(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
@@ -83,8 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const contextLoading = loading || (!!user && allowedMenus === undefined);
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, logout }}>
+    <AuthContext.Provider value={{ session, user, loading: contextLoading, logout, allowedMenus: allowedMenus === undefined ? null : allowedMenus, fetchUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );
