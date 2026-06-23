@@ -20,6 +20,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 
+  const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'เจ้าหน้าที่ปฏิบัติการ';
+
   const isAllowed = (menu: string) => {
     if (allowedMenus === null) return true;
     return allowedMenus.includes(menu);
@@ -327,7 +329,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <div className="tail-header-right">
             <span className="tail-header-badge">เข้ารหัสปลอดภัย</span>
             <div className="tail-user-info">
-              <span className="tail-user-name">เจ้าหน้าที่ปฏิบัติการ</span>
+              <span className="tail-user-name">{displayName}</span>
               <span className="tail-user-email">{user?.email}</span>
             </div>
             <button
