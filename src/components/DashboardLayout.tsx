@@ -16,11 +16,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   activeSubMenu,
   title = 'ระบบจัดการผู้ป่วยนอก (OPD)'
 }) => {
-  const { user, logout, allowedMenus } = useAuth();
+  const { user, logout, allowedMenus, displayName: dbDisplayName, role: dbRole } = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const displayName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'เจ้าหน้าที่ปฏิบัติการ';
+  const userDisplayName = dbDisplayName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'ผู้ใช้งานระบบ';
+  const userRole = dbRole || 'เจ้าหน้าที่ปฏิบัติการ';
 
   const isAllowed = (menu: string) => {
     if (allowedMenus === null) return true;
@@ -329,8 +330,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <div className="tail-header-right">
             <span className="tail-header-badge">เข้ารหัสปลอดภัย</span>
             <div className="tail-user-info">
-              <span className="tail-user-name">{displayName}</span>
-              <span className="tail-user-email">{user?.email}</span>
+              <span className="tail-user-name">{userDisplayName}</span>
+              <span className="tail-user-email">ตำแหน่ง: {userRole} • {user?.email}</span>
             </div>
             <button
               onClick={handleLogout}

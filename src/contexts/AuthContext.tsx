@@ -10,6 +10,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [allowedMenus, setAllowedMenus] = useState<string[] | null | undefined>(undefined);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   const fetchUserPermissions = async (userId: string, email?: string) => {
     try {
@@ -19,23 +21,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data, error } = await supabase
         .from('user_permissions')
-        .select('allowed_menus')
+        .select('allowed_menus, display_name, role')
         .or(conditions);
 
       if (error) {
         console.warn('[Auth] Error fetching user permissions:', error.message);
         setAllowedMenus(null);
+        setDisplayName(null);
+        setRole(null);
         return;
       }
 
       if (data && data.length > 0) {
         setAllowedMenus(data[0].allowed_menus);
+        setDisplayName(data[0].display_name);
+        setRole(data[0].role);
       } else {
         setAllowedMenus(null);
+        setDisplayName(null);
+        setRole(null);
       }
     } catch (err) {
       console.error('[Auth] Unexpected error fetching permissions:', err);
       setAllowedMenus(null);
+      setDisplayName(null);
+      setRole(null);
     }
   };
 
@@ -44,6 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fetchUserPermissions(user.id, user.email);
     } else {
       setAllowedMenus(null);
+      setDisplayName(null);
+      setRole(null);
     }
   }, [user]);
 
@@ -123,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const contextLoading = loading || (!!user && allowedMenus === undefined);
 
   return (
-    <AuthContext.Provider value={{ session, user, loading: contextLoading, logout, allowedMenus: allowedMenus === undefined ? null : allowedMenus, fetchUserPermissions }}>
+    <AuthContext.Provider value={{ session, user, loading: contextLoading, logout, allowedMenus: allowedMenus === undefined ? null : allowedMenus, displayName, role, fetchUserPermissions }}>
       {children}
     </AuthContext.Provider>
   );
