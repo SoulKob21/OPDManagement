@@ -8,6 +8,8 @@ type ViewMode = 'list' | 'create' | 'edit';
 interface UserPermission {
   id: string;
   user_id: string;
+  display_name: string | null;
+  role: string | null;
   allowed_menus: string[];
   created_at: string;
   updated_at: string;
@@ -39,6 +41,8 @@ export const PermissionsPage: React.FC = () => {
 
   // Form states
   const [userIdInput, setUserIdInput] = useState('');
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [roleInput, setRoleInput] = useState('');
   const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [userIdError, setUserIdError] = useState<string | null>(null);
@@ -86,7 +90,11 @@ export const PermissionsPage: React.FC = () => {
   const filteredPermissions = permissions.filter(perm => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return perm.user_id.toLowerCase().includes(q);
+    return (
+      perm.user_id.toLowerCase().includes(q) ||
+      (perm.display_name || '').toLowerCase().includes(q) ||
+      (perm.role || '').toLowerCase().includes(q)
+    );
   });
 
   const handleSelectAll = () => {
@@ -134,6 +142,8 @@ export const PermissionsPage: React.FC = () => {
 
       const payload = {
         user_id: targetUserId,
+        display_name: displayNameInput.trim() || null,
+        role: roleInput.trim() || null,
         allowed_menus: selectedMenus,
         updated_at: new Date().toISOString()
       };
@@ -214,6 +224,8 @@ export const PermissionsPage: React.FC = () => {
 
   const goToCreate = () => {
     setUserIdInput('');
+    setDisplayNameInput('');
+    setRoleInput('');
     setSelectedMenus(['overview']); // Start with overview allowed
     setUserIdError(null);
     setEditingRecord(null);
@@ -225,6 +237,8 @@ export const PermissionsPage: React.FC = () => {
   const goToEdit = (perm: UserPermission) => {
     setEditingRecord(perm);
     setUserIdInput(perm.user_id);
+    setDisplayNameInput(perm.display_name || '');
+    setRoleInput(perm.role || '');
     setSelectedMenus(perm.allowed_menus);
     setUserIdError(null);
     setSuccess(null);
@@ -290,7 +304,7 @@ export const PermissionsPage: React.FC = () => {
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>กำหนดสิทธิ์ผู้ใช้งาน (User Menu Permissions)</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-                กำหนดการเข้าถึงหน้าจอและปุ่มเมนูบนระบบตาม User ID หรือ Email ของผู้ใช้
+                กำหนดการเข้าถึงหน้าจอและปุ่มเมนูบนระบบตาม User ID หรือ Email ของผู้ใช้ พร้อมตั้งชื่อและตำแหน่งงาน
               </p>
             </div>
             <button className="btn btn-primary" onClick={goToCreate} style={{ width: 'auto' }}>
@@ -312,7 +326,7 @@ export const PermissionsPage: React.FC = () => {
                 type="text"
                 className="form-input"
                 style={{ paddingLeft: '2.5rem' }}
-                placeholder="ค้นหาด้วย User ID / Email..."
+                placeholder="ค้นหาด้วย User ID, Email, ชื่อ หรือตำแหน่ง..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -345,6 +359,7 @@ export const PermissionsPage: React.FC = () => {
               <table className="opd-table">
                 <thead>
                   <tr>
+                    <th>ชื่อและตำแหน่ง</th>
                     <th>User ID / Email</th>
                     <th>เมนูที่ได้รับอนุญาต</th>
                     <th style={{ width: '180px', textAlign: 'right' }}>จัดการ</th>
@@ -356,9 +371,15 @@ export const PermissionsPage: React.FC = () => {
                     return (
                       <tr key={perm.id} style={isSelf ? { backgroundColor: 'var(--primary-subtle)', borderLeft: '3px solid var(--primary)' } : {}}>
                         <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{perm.display_name || '—'}</span>
+                            {perm.role && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ตำแหน่ง: {perm.role}</span>}
+                          </div>
+                        </td>
+                        <td>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 600 }}>{perm.user_id}</span>
-                            {isSelf && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>บัญชีของคุณ (กำลังใช้งาน)</span>}
+                            <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{perm.user_id}</span>
+                            {isSelf && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '2px' }}>บัญชีของคุณ (กำลังใช้งาน)</span>}
                           </div>
                         </td>
                         <td>
@@ -422,11 +443,11 @@ export const PermissionsPage: React.FC = () => {
               {viewMode === 'edit' ? `แก้ไขข้อมูลสิทธิ์การใช้งาน — ${editingRecord?.user_id}` : 'เพิ่มการกำหนดสิทธิ์ใหม่'}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', marginBottom: '1.5rem' }}>
-              ติ๊กเลือกแต่ละหน้าจอที่ต้องการอนุญาตให้ User ID นี้มองเห็นและใช้งานได้
+              ระบุข้อมูลผู้ใช้และเลือกเมนูใช้งานระบบให้สอดคล้องกับขอบเขตหน้าที่
             </p>
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group" style={{ maxWidth: '400px', marginBottom: '1.5rem' }}>
+              <div className="form-group" style={{ maxWidth: '600px', marginBottom: '1.5rem' }}>
                 <label className="form-label" style={{ fontWeight: 600 }}>User ID หรือ Email ของผู้ใช้ *</label>
                 <input
                   type="text"
@@ -441,6 +462,37 @@ export const PermissionsPage: React.FC = () => {
                   ระบุ UUID จาก Supabase Auth หรือระบุ Email ของผู้ใช้ หรือระบุ 'dev-user' หากต้องการทดสอบในโหมด Dev
                 </span>
                 {userIdError && <span className="form-error">{userIdError}</span>}
+              </div>
+
+              {/* Row for Name & Role */}
+              <div className="opd-form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem', maxWidth: '800px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>ชื่อผู้ใช้งาน (Name)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="เช่น นายสมชาย ปฏิบัติงาน"
+                    value={displayNameInput}
+                    onChange={(e) => setDisplayNameInput(e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                    ระบุชื่อจริงหรือชื่อเล่นสำหรับให้แสดงผล
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>ตำแหน่ง / ฝ่าย (Position)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="เช่น พยาบาลคัดกรอง, เภสัชกร, เจ้าหน้าที่เวชระเบียน"
+                    value={roleInput}
+                    onChange={(e) => setRoleInput(e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                    ระบุตำแหน่งงานเพื่อประโยชน์ในการค้นหาและแบ่งแยกหน้างาน
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>

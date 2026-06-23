@@ -163,6 +163,8 @@ CREATE POLICY "Allow authenticated users to delete medicine_deliveries" ON publi
 CREATE TABLE IF NOT EXISTS public.user_permissions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id TEXT NOT NULL UNIQUE,
+    display_name TEXT,
+    role TEXT,
     allowed_menus TEXT[] NOT NULL DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
