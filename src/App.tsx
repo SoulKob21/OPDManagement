@@ -6,7 +6,6 @@ import PublicOnlyRoute from './components/PublicOnlyRoute';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import DiabetesScreeningPage from './pages/DiabetesScreeningPage';
@@ -35,11 +34,7 @@ export const App: React.FC = () => {
             />
             <Route
               path="/forgot-password"
-              element={
-                <PublicOnlyRoute>
-                  <ForgotPasswordPage />
-                </PublicOnlyRoute>
-              }
+              element={<Navigate to="/login" replace />}
             />
 
             {/* Password Reset Route (Requires session verification inside page) */}

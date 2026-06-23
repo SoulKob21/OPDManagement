@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { supabase, TURNSTILE_SITE_KEY } from '../lib/supabase';
@@ -153,11 +153,7 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
           />
 
-          <div style={{ textAlign: 'right', marginBottom: '1.25rem' }}>
-            <Link to="/forgot-password" className="auth-link">
-              Forgot Password?
-            </Link>
-          </div>
+
 
           {TURNSTILE_SITE_KEY ? (
             <div className="turnstile-container">
