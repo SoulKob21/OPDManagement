@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Patient, Doctor } from '../types/opd';
-import { TITLES, GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
+import { GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -71,6 +71,15 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
   // Custom delete confirmation state
   const [deletePatient, setDeletePatient] = useState<Patient | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset page when patients change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [patients.length, searchQuery]);
 
   // Doctor Autocomplete State
   const [doctorQuery, setDoctorQuery] = useState('');
@@ -305,7 +314,11 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
       if (onRefreshStats) onRefreshStats();
     } catch (err: any) {
       console.error('Error saving patient:', err);
-      setError('ไม่สามารถบันทึกข้อมูลผู้ป่วยได้: ' + (err.message || 'ข้อผิดพลาดเกี่ยวกับสิทธิ์หรือระบบ'));
+      if (err.message?.includes('duplicate key') || err.message?.includes('unique constraint') || err.message?.includes('violates unique constraint')) {
+        setError('ไม่สามารถบันทึกข้อมูลได้: เลข HN นี้ถูกใช้งานโดยผู้ป่วยรายอื่นแล้ว กรุณาตรวจสอบใหม่');
+      } else {
+        setError('ไม่สามารถบันทึกข้อมูลผู้ป่วยได้: ' + (err.message || 'ข้อผิดพลาดเกี่ยวกับสิทธิ์หรือระบบ'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -422,7 +435,6 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                 placeholder="เช่น HN-260619-0001"
                 value={formData.hn}
                 onChange={(e) => setFormData({ ...formData, hn: e.target.value })}
-                disabled={viewMode === 'edit'}
               />
               {formErrors.hn && <span className="form-error">{formErrors.hn}</span>}
             </div>
@@ -498,13 +510,13 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
           <div className="opd-form-grid" style={{ gridTemplateColumns: '140px 1fr 1fr' }}>
             <div className="form-group">
               <label className="form-label">คำนำหน้า</label>
-              <select
-                className="form-select"
+              <input
+                type="text"
+                className="form-input"
+                placeholder="เช่น นาย, นาง, พญ., ดร."
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              >
-                {TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+              />
             </div>
 
             <div className="form-group">
@@ -803,108 +815,209 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   };
 
   // ========= LIST VIEW =========
-  const renderList = () => (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>ลงทะเบียนผู้ป่วย (Patient Registration)</h2>
-        <button className="btn btn-primary" onClick={goToCreate} style={{ width: 'auto' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          เพิ่มผู้ป่วยใหม่
-        </button>
-      </div>
+  const renderList = () => {
+    const totalItems = patients.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const indexOfLastItem = safeCurrentPage * pageSize;
+    const indexOfFirstItem = indexOfLastItem - pageSize;
+    const currentPatients = patients.slice(indexOfFirstItem, indexOfLastItem);
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="search-bar">
-        <div className="search-input-wrapper">
-          <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input
-            type="text"
-            className="form-input"
-            style={{ paddingLeft: '2.5rem' }}
-            placeholder="ค้นหาด้วย HN, เลขบัตรประชาชน, พาสปอร์ต, ชื่อ-นามสกุล หรือเบอร์โทร..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="btn btn-secondary" style={{ width: 'auto' }}>ค้นหา</button>
-        {searchQuery && (
-          <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setSearchQuery(''); fetchPatients(); }}>
-            ล้างตัวกรอง
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>ลงทะเบียนผู้ป่วย (Patient Registration)</h2>
+          <button className="btn btn-primary" onClick={goToCreate} style={{ width: 'auto' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            เพิ่มผู้ป่วยใหม่
           </button>
-        )}
-      </form>
+        </div>
 
-      {/* Patient Table */}
-      <div className="opd-table-container">
-        {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <span className="spinner" style={{ display: 'inline-block' }}></span>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>กำลังโหลดข้อมูลผู้ป่วย...</p>
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="search-bar">
+          <div className="search-input-wrapper">
+            <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              className="form-input"
+              style={{ paddingLeft: '2.5rem' }}
+              placeholder="ค้นหาด้วย HN, เลขบัตรประชาชน, พาสปอร์ต, ชื่อ-นามสกุล หรือเบอร์โทร..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        ) : patients.length === 0 ? (
-          <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginBottom: '1rem', opacity: 0.4 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-            <p style={{ fontWeight: 600 }}>ไม่พบข้อมูลผู้ป่วย</p>
-            <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>กรุณากดปุ่ม "เพิ่มผู้ป่วยใหม่" เพื่อเริ่มสร้างระเบียนข้อมูล</p>
-          </div>
-        ) : (
-          <table className="opd-table">
-            <thead>
-              <tr>
-                <th>HN</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>แพทย์เจ้าของไข้</th>
-                <th>บัตรประชาชน / พาสปอร์ต</th>
-                <th>เบอร์โทรศัพท์</th>
-                <th>สิทธิการรักษา</th>
-                <th>สถานะ</th>
-                <th style={{ textAlign: 'right' }}>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((patient) => (
-                <tr
-                  key={patient.id}
-                  onClick={() => goToDetail(patient)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{patient.hn}</td>
-                  <td>{patient.title}{patient.first_name} {patient.last_name}</td>
-                  <td>{patient.primary_doctor || '—'}</td>
-                  <td>{patient.citizen_id || patient.passport_number || '—'}</td>
-                  <td>{patient.phone_number || '—'}</td>
-                  <td>{patient.medical_right.split(' ')[0]}</td>
-                  <td>
-                    <span className={`badge ${patient.status === 'active' ? 'badge-status-active' : 'badge-status-inactive'}`}>
-                      {patient.status === 'active' ? 'ใช้งานปกติ' : 'ระงับการใช้งาน'}
+          <button type="submit" className="btn btn-secondary" style={{ width: 'auto' }}>ค้นหา</button>
+          {searchQuery && (
+            <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setSearchQuery(''); fetchPatients(); }}>
+              ล้างตัวกรอง
+            </button>
+          )}
+        </form>
+
+        {/* Patient Table */}
+        <div className="opd-table-container">
+          {loading ? (
+            <div style={{ padding: '3rem', textAlign: 'center' }}>
+              <span className="spinner" style={{ display: 'inline-block' }}></span>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>กำลังโหลดข้อมูลผู้ป่วย...</p>
+            </div>
+          ) : patients.length === 0 ? (
+            <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginBottom: '1rem', opacity: 0.4 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              <p style={{ fontWeight: 600 }}>ไม่พบข้อมูลผู้ป่วย</p>
+              <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>กรุณากดปุ่ม "เพิ่มผู้ป่วยใหม่" เพื่อเริ่มสร้างระเบียนข้อมูล</p>
+            </div>
+          ) : (
+            <>
+              <table className="opd-table">
+                <thead>
+                  <tr>
+                    <th>HN</th>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>แพทย์เจ้าของไข้</th>
+                    <th>บัตรประชาชน / พาสปอร์ต</th>
+                    <th>เบอร์โทรศัพท์</th>
+                    <th>สิทธิการรักษา</th>
+                    <th>สถานะ</th>
+                    <th style={{ textAlign: 'right' }}>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentPatients.map((patient) => (
+                    <tr
+                      key={patient.id}
+                      onClick={() => goToDetail(patient)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{patient.hn}</td>
+                      <td>{patient.title}{patient.first_name} {patient.last_name}</td>
+                      <td>{patient.primary_doctor || '—'}</td>
+                      <td>{patient.citizen_id || patient.passport_number || '—'}</td>
+                      <td>{patient.phone_number || '—'}</td>
+                      <td>{patient.medical_right.split(' ')[0]}</td>
+                      <td>
+                        <span className={`badge ${patient.status === 'active' ? 'badge-status-active' : 'badge-status-inactive'}`}>
+                          {patient.status === 'active' ? 'ใช้งานปกติ' : 'ระงับการใช้งาน'}
+                        </span>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <div className="row-actions">
+                          <button
+                            className="btn btn-secondary"
+                            style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                            onClick={() => goToEdit(patient)}
+                          >
+                            แก้ไข
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                            onClick={() => handleDeletePatient(patient)}
+                          >
+                            ลบ
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls */}
+              {totalItems > 0 && (
+                <div className="tail-pagination">
+                  <div className="tail-pagination-left">
+                    <span className="tail-pagination-info">
+                      แสดง {indexOfFirstItem + 1} ถึง {Math.min(indexOfLastItem, totalItems)} จากทั้งหมด {totalItems} รายการ
                     </span>
-                  </td>
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <div className="row-actions">
-                      <button
-                        className="btn btn-secondary"
-                        style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                        onClick={() => goToEdit(patient)}
+                    <div className="tail-pagination-select-wrapper">
+                      <span>แสดงต่อหน้า:</span>
+                      <select
+                        className="tail-pagination-select"
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
                       >
-                        แก้ไข
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                        onClick={() => handleDeletePatient(patient)}
-                      >
-                        ลบ
-                      </button>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                  </div>
+
+                  <div className="tail-pagination-actions">
+                    <button
+                      type="button"
+                      className="tail-pagination-btn"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={safeCurrentPage === 1}
+                      title="หน้าแรก"
+                    >
+                      &laquo;
+                    </button>
+                    <button
+                      type="button"
+                      className="tail-pagination-btn"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={safeCurrentPage === 1}
+                      title="ก่อนหน้า"
+                    >
+                      &lsaquo;
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+                      .map((p, idx, arr) => {
+                        const elements = [];
+                        if (idx > 0 && p - arr[idx - 1] > 1) {
+                          elements.push(
+                            <span key={`ellipsis-${p}`} style={{ padding: '0 0.5rem', color: 'var(--text-muted)' }}>
+                              ...
+                            </span>
+                          );
+                        }
+                        elements.push(
+                          <button
+                            type="button"
+                            key={p}
+                            className={`tail-pagination-btn ${safeCurrentPage === p ? 'active' : ''}`}
+                            onClick={() => setCurrentPage(p)}
+                          >
+                            {p}
+                          </button>
+                        );
+                        return elements;
+                      })}
+
+                    <button
+                      type="button"
+                      className="tail-pagination-btn"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={safeCurrentPage === totalPages}
+                      title="ถัดไป"
+                    >
+                      &rsaquo;
+                    </button>
+                    <button
+                      type="button"
+                      className="tail-pagination-btn"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={safeCurrentPage === totalPages}
+                      title="หน้าสุดท้าย"
+                    >
+                      &raquo;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ========= MAIN RENDER =========
   return (

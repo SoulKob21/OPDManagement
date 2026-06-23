@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { MedicineDelivery, Patient, Doctor, DeliveryType, DeliveryStatus } from '../types/opd';
-import { DELIVERY_TYPE_LABELS, DELIVERY_STATUS_LABELS, TITLES, MEDICAL_RIGHTS, GENDERS, MOCK_DOCTORS } from '../types/opd';
+import { DELIVERY_TYPE_LABELS, DELIVERY_STATUS_LABELS, MEDICAL_RIGHTS, GENDERS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
 import * as XLSX from 'xlsx';
@@ -897,14 +897,16 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                     <div className="opd-form-grid" style={{ gridTemplateColumns: '120px 1fr 1fr 120px' }}>
                       <div className="form-group">
                         <label className="form-label">คำนำหน้า</label>
-                        <select className="form-select" value={miniPatientForm.title}
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="เช่น นาย, นาง, พญ."
+                          value={miniPatientForm.title}
                           onChange={(e) => {
                             const t = e.target.value;
                             setMiniPatientForm(prev => ({ ...prev, title: t, gender: genderFromTitle(t) }));
                           }}
-                        >
-                          {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                        />
                       </div>
 
                       <div className="form-group">

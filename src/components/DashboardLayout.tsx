@@ -331,7 +331,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <span className="tail-header-badge">เข้ารหัสปลอดภัย</span>
             <div className="tail-user-info">
               <span className="tail-user-name">{userDisplayName}</span>
-              <span className="tail-user-email">ตำแหน่ง: {userRole} • {user?.email}</span>
+              <span className="tail-user-email" style={{ display: 'block' }}>ตำแหน่ง: {userRole}</span>
+              <span className="tail-user-email" style={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>{user?.email}</span>
             </div>
             <button
               onClick={handleLogout}
