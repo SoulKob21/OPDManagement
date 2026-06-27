@@ -242,7 +242,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats }) => {
               title: title || 'นาย',
               first_name: first_name || row.full_name,
               last_name: last_name || '-',
-              primary_doctor: 'หมอ 99',
+              primary_doctor: 'กรุณาเลือกแพทย์เจ้าของไข้ใหม่',
               status: 'active',
               gender: title === 'นาย' || title === 'ด.ช.' ? 'ชาย' : 'หญิง',
               phone_number: '',
