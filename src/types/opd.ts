@@ -176,3 +176,31 @@ export const DELIVERY_STATUS_LABELS: Record<DeliveryStatus, string> = {
   delivered: 'จัดส่งแล้ว',
   cancelled: 'ยกเลิก',
 };
+
+// ====== Patient Diseases & Lab Results ======
+export interface PatientDisease {
+  id: string;
+  patient_id: string;
+  disease_name: string;
+  disease_code?: string;
+  diagnosed_date?: string;
+  notes?: string;
+  status: 'active' | 'resolved' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PatientLabResult {
+  id: string;
+  patient_id: string;
+  test_name: string;
+  test_date: string;
+  result_value: string;
+  unit?: string;
+  reference_range?: string;
+  notes?: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+}
+

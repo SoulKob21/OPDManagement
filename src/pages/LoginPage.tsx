@@ -41,22 +41,22 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    // 3. Validate CAPTCHA Token
-    if (!captchaToken) {
+    // 3. Validate CAPTCHA Token (Only strictly required in production)
+    if (!captchaToken && !import.meta.env.DEV) {
       setError('Please complete the security check.');
       return;
     }
-
+ 
     try {
       setLoading(true);
-
+ 
       // 4. Sign in via Supabase Auth
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
+        options: captchaToken ? {
           captchaToken: captchaToken,
-        },
+        } : undefined,
       });
 
       // Reset Turnstile on completed attempt (success or failure)
@@ -182,24 +182,63 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading || !captchaToken}
+            disabled={loading || (!captchaToken && !import.meta.env.DEV)}
             className="btn btn-primary"
           >
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
 
           {import.meta.env.DEV && (
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.setItem('DEV_BYPASS_LOGIN', 'true');
-                window.location.href = '/dashboard';
-              }}
-              className="btn btn-secondary"
-              style={{ marginTop: '0.75rem', borderColor: 'var(--primary)', fontWeight: 600 }}
-            >
-              ⚡ Bypass Login (Dev mode)
-            </button>
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@opd.com');
+                    setPassword('Admin@123456!');
+                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, borderColor: 'var(--primary)', fontWeight: 600, fontSize: '0.75rem', padding: '0.4rem' }}
+                >
+                  🔑 Autofill Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      setError(null);
+                      const { data, error: authError } = await supabase.auth.signInWithPassword({
+                        email: 'admin@opd.com',
+                        password: 'Admin@123456!'
+                      });
+                      if (authError) throw authError;
+                      if (data.session) {
+                        navigate(from, { replace: true });
+                      }
+                    } catch (err: any) {
+                      setError('Auto-Login failed: ' + (err.message || err));
+                      setLoading(false);
+                    }
+                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, borderColor: 'var(--primary)', fontWeight: 600, fontSize: '0.75rem', padding: '0.4rem' }}
+                >
+                  ⚡ Auto-Login Admin
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('DEV_BYPASS_LOGIN', 'true');
+                  window.location.href = '/dashboard';
+                }}
+                className="btn btn-secondary"
+                style={{ borderColor: 'var(--border-color)', fontWeight: 500, fontSize: '0.75rem', padding: '0.4rem' }}
+              >
+                📴 Offline Bypass (No DB)
+              </button>
+            </div>
           )}
         </form>
       </div>

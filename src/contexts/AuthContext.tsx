@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Dev bypass: skip Supabase auth entirely
     if (shouldBypass) {
-      setUser({ id: 'dev-user', email: 'dev@localhost' } as User);
+      setUser({ id: 'dev-user', email: 'admin@opd.com' } as User);
       setSession({} as Session);
       setLoading(false);
       return;

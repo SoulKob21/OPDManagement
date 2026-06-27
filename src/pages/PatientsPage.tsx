@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Patient, Doctor } from '../types/opd';
+import type { Patient, Doctor, PatientDisease, PatientLabResult } from '../types/opd';
 import { GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -63,6 +63,37 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientHistory, setPatientHistory] = useState<{ appointments: any[]; queues: any[] }>({ appointments: [], queues: [] });
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Tab state for detail view
+  const [detailTab, setDetailTab] = useState<'info' | 'diseases' | 'labs'>('info');
+
+  // Patient Diseases State
+  const [patientDiseases, setPatientDiseases] = useState<PatientDisease[]>([]);
+  const [loadingDiseases, setLoadingDiseases] = useState(false);
+  const [showAddDiseaseForm, setShowAddDiseaseForm] = useState(false);
+  const [diseaseForm, setDiseaseForm] = useState({
+    disease_name: '',
+    disease_code: '',
+    diagnosed_date: new Date().toISOString().split('T')[0],
+    notes: '',
+    status: 'active' as 'active' | 'resolved' | 'inactive'
+  });
+  const [submittingDisease, setSubmittingDisease] = useState(false);
+
+  // Patient Lab Results State
+  const [patientLabResults, setPatientLabResults] = useState<PatientLabResult[]>([]);
+  const [loadingLabs, setLoadingLabs] = useState(false);
+  const [showAddLabForm, setShowAddLabForm] = useState(false);
+  const [labForm, setLabForm] = useState({
+    test_name: '',
+    test_date: new Date().toISOString().split('T')[0],
+    result_value: '',
+    unit: '',
+    reference_range: '',
+    notes: '',
+    status: 'completed' as 'pending' | 'completed' | 'cancelled'
+  });
+  const [submittingLab, setSubmittingLab] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<PatientFormState>(initialFormState);
@@ -157,6 +188,11 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   useEffect(() => {
     if (selectedPatient && viewMode === 'detail') {
       fetchPatientHistory(selectedPatient.id);
+      fetchPatientDiseases(selectedPatient.id);
+      fetchPatientLabResults(selectedPatient.id);
+      setDetailTab('info');
+      setShowAddDiseaseForm(false);
+      setShowAddLabForm(false);
     }
   }, [selectedPatient, viewMode]);
 
@@ -201,6 +237,202 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
       console.error('Error fetching patient history:', err);
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const fetchPatientDiseases = async (patientId: string) => {
+    try {
+      setLoadingDiseases(true);
+      const { data, error: fetchErr } = await supabase
+        .from('patient_diseases')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('diagnosed_date', { ascending: false });
+      if (fetchErr) throw fetchErr;
+      setPatientDiseases(data || []);
+    } catch (err) {
+      console.error('Error fetching patient diseases:', err);
+    } finally {
+      setLoadingDiseases(false);
+    }
+  };
+
+  const fetchPatientLabResults = async (patientId: string) => {
+    try {
+      setLoadingLabs(true);
+      const { data, error: fetchErr } = await supabase
+        .from('patient_lab_results')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('test_date', { ascending: false });
+      if (fetchErr) throw fetchErr;
+      setPatientLabResults(data || []);
+    } catch (err) {
+      console.error('Error fetching patient lab results:', err);
+    } finally {
+      setLoadingLabs(false);
+    }
+  };
+
+  const handleAddDisease = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatient) return;
+    if (!diseaseForm.disease_name.trim()) return;
+
+    try {
+      setSubmittingDisease(true);
+      setError(null);
+      setSuccess(null);
+
+      const diseasesList = diseaseForm.disease_name
+        .split(',')
+        .map(d => d.trim())
+        .filter(d => d.length > 0);
+
+      if (diseasesList.length === 0) return;
+
+      const inserts = diseasesList.map(name => ({
+        patient_id: selectedPatient.id,
+        disease_name: name,
+        disease_code: diseaseForm.disease_code.trim() || null,
+        diagnosed_date: diseaseForm.diagnosed_date || null,
+        notes: diseaseForm.notes.trim() || null,
+        status: diseaseForm.status
+      }));
+
+      const { error: insertErr } = await supabase
+        .from('patient_diseases')
+        .insert(inserts);
+
+      if (insertErr) throw insertErr;
+
+      setSuccess(`เพิ่มบันทึกโรคประจำตัวสำเร็จ (${diseasesList.join(', ')})`);
+      setDiseaseForm({
+        disease_name: '',
+        disease_code: '',
+        diagnosed_date: new Date().toISOString().split('T')[0],
+        notes: '',
+        status: 'active'
+      });
+      setShowAddDiseaseForm(false);
+      fetchPatientDiseases(selectedPatient.id);
+    } catch (err: any) {
+      console.error('Error adding disease:', err);
+      setError('เกิดข้อผิดพลาดในการบันทึกข้อมูลโรคประจำตัว');
+    } finally {
+      setSubmittingDisease(false);
+    }
+  };
+
+  const handleToggleDiseaseStatus = async (diseaseId: string, currentStatus: 'active' | 'resolved' | 'inactive') => {
+    if (!selectedPatient) return;
+    setError(null);
+    setSuccess(null);
+    const nextStatusMap: Record<'active' | 'resolved' | 'inactive', 'active' | 'resolved' | 'inactive'> = {
+      active: 'resolved',
+      resolved: 'inactive',
+      inactive: 'active'
+    };
+    const nextStatus = nextStatusMap[currentStatus];
+
+    try {
+      const { error: updateErr } = await supabase
+        .from('patient_diseases')
+        .update({ status: nextStatus })
+        .eq('id', diseaseId);
+
+      if (updateErr) throw updateErr;
+      setSuccess('อัปเดตสถานะโรคประจำตัวสำเร็จ');
+      fetchPatientDiseases(selectedPatient.id);
+    } catch (err) {
+      console.error('Error toggling disease status:', err);
+      setError('เกิดข้อผิดพลาดในการอัปเดตสถานะโรค');
+    }
+  };
+
+  const handleDeleteDisease = async (diseaseId: string) => {
+    if (!selectedPatient) return;
+    setError(null);
+    setSuccess(null);
+    if (!window.confirm('คุณต้องการลบบันทึกโรคประจำตัวนี้ใช่หรือไม่?')) return;
+
+    try {
+      const { error: deleteErr } = await supabase
+        .from('patient_diseases')
+        .delete()
+        .eq('id', diseaseId);
+
+      if (deleteErr) throw deleteErr;
+      setSuccess('ลบบันทึกโรคประจำตัวสำเร็จ');
+      fetchPatientDiseases(selectedPatient.id);
+    } catch (err) {
+      console.error('Error deleting disease:', err);
+      setError('เกิดข้อผิดพลาดในการลบข้อมูลโรคประจำตัว');
+    }
+  };
+
+  const handleAddLabResult = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatient) return;
+    if (!labForm.test_name.trim() || !labForm.result_value.trim()) return;
+
+    try {
+      setSubmittingLab(true);
+      setError(null);
+      setSuccess(null);
+      const { error: insertErr } = await supabase
+        .from('patient_lab_results')
+        .insert({
+          patient_id: selectedPatient.id,
+          test_name: labForm.test_name.trim(),
+          test_date: labForm.test_date,
+          result_value: labForm.result_value.trim(),
+          unit: labForm.unit.trim() || null,
+          reference_range: labForm.reference_range.trim() || null,
+          notes: labForm.notes.trim() || null,
+          status: labForm.status
+        });
+
+      if (insertErr) throw insertErr;
+
+      setSuccess('เพิ่มผลตรวจแลปสำเร็จ');
+      setLabForm({
+        test_name: '',
+        test_date: new Date().toISOString().split('T')[0],
+        result_value: '',
+        unit: '',
+        reference_range: '',
+        notes: '',
+        status: 'completed'
+      });
+      setShowAddLabForm(false);
+      fetchPatientLabResults(selectedPatient.id);
+    } catch (err: any) {
+      console.error('Error adding lab result:', err);
+      setError('เกิดข้อผิดพลาดในการบันทึกผลตรวจแลป');
+    } finally {
+      setSubmittingLab(false);
+    }
+  };
+
+  const handleDeleteLabResult = async (labId: string) => {
+    if (!selectedPatient) return;
+    setError(null);
+    setSuccess(null);
+    if (!window.confirm('คุณต้องการลบผลตรวจแลปนี้ใช่หรือไม่?')) return;
+
+    try {
+      const { error: deleteErr } = await supabase
+        .from('patient_lab_results')
+        .delete()
+        .eq('id', labId);
+
+      if (deleteErr) throw deleteErr;
+      setSuccess('ลบผลตรวจแลปสำเร็จ');
+      fetchPatientLabResults(selectedPatient.id);
+    } catch (err) {
+      console.error('Error deleting lab result:', err);
+      setError('เกิดข้อผิดพลาดในการลบข้อมูลผลตรวจแลป');
     }
   };
 
@@ -305,9 +537,28 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
           .select();
 
         if (insertErr) throw insertErr;
+        const newPatient = data[0];
         setSuccess('เพิ่มผู้ป่วยใหม่สำเร็จ (HN: ' + formData.hn + ')');
-        setPatients([data[0], ...patients]);
-        setSelectedPatient(data[0]);
+
+        // Automatically parse chronic_disease_note and insert into patient_diseases table
+        if (payload.chronic_disease_note) {
+          const diseasesList = payload.chronic_disease_note
+            .split(',')
+            .map(d => d.trim())
+            .filter(d => d.length > 0);
+
+          if (diseasesList.length > 0) {
+            const diseaseInserts = diseasesList.map(name => ({
+              patient_id: newPatient.id,
+              disease_name: name,
+              status: 'active' as const
+            }));
+            await supabase.from('patient_diseases').insert(diseaseInserts);
+          }
+        }
+
+        setPatients([newPatient, ...patients]);
+        setSelectedPatient(newPatient);
         setViewMode('detail');
       }
 
@@ -750,63 +1001,470 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
             </div>
 
             <div className="detail-main-content">
-              <div className="detail-section">
-                <h4>ข้อมูลติดต่อและประวัติทางคลินิก</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.875rem' }}>
-                  <div>
-                    <p><strong>ที่อยู่ปัจจุบัน:</strong></p>
-                    <p style={{ color: 'var(--text-secondary)' }}>{selectedPatient.address || '—'}</p>
-                  </div>
-                  <div>
-                    <p><strong>ผู้ติดต่อฉุกเฉิน:</strong></p>
-                    <p style={{ color: 'var(--text-secondary)' }}>
-                      {selectedPatient.emergency_contact_name ? `${selectedPatient.emergency_contact_name} (${selectedPatient.emergency_contact_phone})` : '—'}
-                    </p>
-                  </div>
-                </div>
-                <div style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
-                  <p><strong>โรคประจำตัว:</strong></p>
-                  <p style={{ color: 'var(--text-secondary)' }}>{selectedPatient.chronic_disease_note || '—'}</p>
-                </div>
+              {/* Tabs Navigation */}
+              <div className="opd-tabs-nav" style={{ display: 'flex', gap: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.25rem', marginBottom: '1.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setDetailTab('info')}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    padding: '0.5rem 0',
+                    fontSize: '0.875rem',
+                    fontWeight: detailTab === 'info' ? 700 : 500,
+                    color: detailTab === 'info' ? 'var(--primary)' : 'var(--text-secondary)',
+                    borderBottom: detailTab === 'info' ? '2px solid var(--primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  ประวัติ & ข้อมูลทั่วไป
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailTab('diseases')}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    padding: '0.5rem 0',
+                    fontSize: '0.875rem',
+                    fontWeight: detailTab === 'diseases' ? 700 : 500,
+                    color: detailTab === 'diseases' ? 'var(--primary)' : 'var(--text-secondary)',
+                    borderBottom: detailTab === 'diseases' ? '2px solid var(--primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  โรคประจำตัว ({loadingDiseases ? '...' : patientDiseases.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailTab('labs')}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    padding: '0.5rem 0',
+                    fontSize: '0.875rem',
+                    fontWeight: detailTab === 'labs' ? 700 : 500,
+                    color: detailTab === 'labs' ? 'var(--primary)' : 'var(--text-secondary)',
+                    borderBottom: detailTab === 'labs' ? '2px solid var(--primary)' : '2px solid transparent',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  ผลตรวจแลป ({loadingLabs ? '...' : patientLabResults.length})
+                </button>
               </div>
 
-              <div className="detail-section">
-                <h4>ประวัติการรักษาสังเขป (นัดหมาย & คิว)</h4>
-                {loadingHistory ? (
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>กำลังโหลดประวัติ...</p>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.8125rem' }}>
-                    <div>
-                      <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>นัดหมายล่าสุด</p>
-                      {patientHistory.appointments.length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลการนัดหมาย</p>
-                      ) : (
-                        <ul style={{ paddingLeft: '1.25rem' }}>
-                          {patientHistory.appointments.map((a: any) => (
-                            <li key={a.id} style={{ marginBottom: '0.25rem' }}>
-                              {a.appointment_date} | {a.department} ({a.doctor_name})
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+              {detailTab === 'info' && (
+                <>
+                  <div className="detail-section">
+                    <h4>ข้อมูลติดต่อและประวัติทางคลินิก</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.875rem' }}>
+                      <div>
+                        <p><strong>ที่อยู่ปัจจุบัน:</strong></p>
+                        <p style={{ color: 'var(--text-secondary)' }}>{selectedPatient.address || '—'}</p>
+                      </div>
+                      <div>
+                        <p><strong>ผู้ติดต่อฉุกเฉิน:</strong></p>
+                        <p style={{ color: 'var(--text-secondary)' }}>
+                          {selectedPatient.emergency_contact_name ? `${selectedPatient.emergency_contact_name} (${selectedPatient.emergency_contact_phone})` : '—'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>ประวัติคิวรักษา</p>
-                      {patientHistory.queues.length === 0 ? (
-                        <p style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลประวัติคิว</p>
-                      ) : (
-                        <ul style={{ paddingLeft: '1.25rem' }}>
-                          {patientHistory.queues.map((q: any) => (
-                            <li key={q.id} style={{ marginBottom: '0.25rem' }}>
-                              คิว {q.queue_number} ({q.queue_date}) - {q.department}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                    <div style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
+                      <p><strong>โรคประจำตัว (สรุปตอนลงทะเบียน):</strong></p>
+                      <p style={{ color: 'var(--text-secondary)' }}>{selectedPatient.chronic_disease_note || '—'}</p>
                     </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="detail-section">
+                    <h4>ประวัติการรักษาสังเขป (นัดหมาย & คิว)</h4>
+                    {loadingHistory ? (
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>กำลังโหลดประวัติ...</p>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.8125rem' }}>
+                        <div>
+                          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>นัดหมายล่าสุด</p>
+                          {patientHistory.appointments.length === 0 ? (
+                            <p style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลการนัดหมาย</p>
+                          ) : (
+                            <ul style={{ paddingLeft: '1.25rem' }}>
+                              {patientHistory.appointments.map((a: any) => (
+                                <li key={a.id} style={{ marginBottom: '0.25rem' }}>
+                                  {a.appointment_date} | {a.department} ({a.doctor_name})
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>ประวัติคิวรักษา</p>
+                          {patientHistory.queues.length === 0 ? (
+                            <p style={{ color: 'var(--text-muted)' }}>ไม่มีข้อมูลประวัติคิว</p>
+                          ) : (
+                            <ul style={{ paddingLeft: '1.25rem' }}>
+                              {patientHistory.queues.map((q: any) => (
+                                <li key={q.id} style={{ marginBottom: '0.25rem' }}>
+                                  คิว {q.queue_number} ({q.queue_date}) - {q.department}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {detailTab === 'diseases' && (
+                <div className="detail-section">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0 }}>โรคประจำตัวที่วินิจฉัยแล้ว (Diagnosed Diseases)</h4>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                      onClick={() => setShowAddDiseaseForm(!showAddDiseaseForm)}
+                    >
+                      {showAddDiseaseForm ? 'ยกเลิก' : '+ เพิ่มประวัติโรค'}
+                    </button>
+                  </div>
+
+                  {showAddDiseaseForm && (
+                    <form onSubmit={handleAddDisease} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s' }}>
+                      <h5 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 600 }}>เพิ่มประวัติโรคประจำตัว</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>ชื่อโรค *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            required
+                            placeholder="ระบุชื่อโรค เช่น โรคเบาหวาน หรือ Hypertension"
+                            value={diseaseForm.disease_name}
+                            onChange={(e) => setDiseaseForm({ ...diseaseForm, disease_name: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>รหัสโรค (ICD-10)</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="E11.9, I10"
+                            value={diseaseForm.disease_code}
+                            onChange={(e) => setDiseaseForm({ ...diseaseForm, disease_code: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>วันที่วินิจฉัย</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={diseaseForm.diagnosed_date}
+                            onChange={(e) => setDiseaseForm({ ...diseaseForm, diagnosed_date: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>สถานะ</label>
+                          <select
+                            className="form-select"
+                            value={diseaseForm.status}
+                            onChange={(e) => setDiseaseForm({ ...diseaseForm, status: e.target.value as any })}
+                          >
+                            <option value="active">Active (กำลังรักษา)</option>
+                            <option value="resolved">Resolved (หายแล้ว)</option>
+                            <option value="inactive">Inactive (ประวัติเดิม)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '1rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>บันทึกเพิ่มเติม</label>
+                        <textarea
+                          className="form-textarea"
+                          rows={2}
+                          placeholder="รายละเอียดประวัติการรักษา ยาที่ใช้ อาการ..."
+                          value={diseaseForm.notes}
+                          onChange={(e) => setDiseaseForm({ ...diseaseForm, notes: e.target.value })}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }} onClick={() => setShowAddDiseaseForm(false)}>ยกเลิก</button>
+                        <button type="submit" disabled={submittingDisease} className="btn btn-primary" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                          {submittingDisease ? 'กำลังบันทึก...' : 'บันทึกประวัติโรค'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {loadingDiseases ? (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>กำลังโหลดประวัติโรคประจำตัว...</p>
+                  ) : patientDiseases.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: 'var(--text-muted)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}>ไม่มีประวัติบันทึกโรคประจำตัวของคนไข้รายนี้</p>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ width: 'auto', marginTop: '0.75rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                        onClick={() => setShowAddDiseaseForm(true)}
+                      >
+                        + เพิ่มโรคประจำตัวแรก
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="opd-table-container" style={{ overflowX: 'auto' }}>
+                      <table className="opd-table" style={{ fontSize: '0.8125rem' }}>
+                        <thead>
+                          <tr>
+                            <th>ชื่อโรค (ICD-10)</th>
+                            <th>วันที่วินิจฉัย</th>
+                            <th>สถานะ</th>
+                            <th>บันทึกเพิ่มเติม</th>
+                            <th style={{ width: '130px', textAlign: 'center' }}>จัดการ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {patientDiseases.map((d) => (
+                            <tr key={d.id}>
+                              <td style={{ fontWeight: 600 }}>
+                                {d.disease_name} 
+                                {d.disease_code && (
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', border: '1px solid var(--border-color)' }}>
+                                    {d.disease_code}
+                                  </span>
+                                )}
+                              </td>
+                              <td>{d.diagnosed_date ? new Date(d.diagnosed_date).toLocaleDateString('th-TH') : '—'}</td>
+                              <td>
+                                <span
+                                  className={`badge ${d.status === 'active' ? 'badge-status-active' : d.status === 'resolved' ? 'badge-status-completed' : 'badge-status-inactive'}`}
+                                  onClick={() => handleToggleDiseaseStatus(d.id, d.status)}
+                                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                                  title="คลิกเพื่อสลับสถานะ"
+                                >
+                                  {d.status === 'active' ? 'กำลังรักษา' : d.status === 'resolved' ? 'หายแล้ว' : 'ประวัติเดิม'}
+                                </span>
+                              </td>
+                              <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '240px' }}>{d.notes || '—'}</td>
+                              <td style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ width: 'auto', padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                                  onClick={() => handleToggleDiseaseStatus(d.id, d.status)}
+                                >
+                                  สลับสถานะ
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger"
+                                  style={{ width: 'auto', padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-bg)', color: 'var(--danger-foreground)', border: '1px solid var(--danger-border)' }}
+                                  onClick={() => handleDeleteDisease(d.id)}
+                                >
+                                  ลบ
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {detailTab === 'labs' && (
+                <div className="detail-section">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0 }}>ผลการตรวจทางห้องปฏิบัติการ (Lab Results)</h4>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                      onClick={() => setShowAddLabForm(!showAddLabForm)}
+                    >
+                      {showAddLabForm ? 'ยกเลิก' : '+ บันทึกผลแลป'}
+                    </button>
+                  </div>
+
+                  {showAddLabForm && (
+                    <form onSubmit={handleAddLabResult} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s' }}>
+                      <h5 style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', fontWeight: 600 }}>กรอกผลการตรวจแลป</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>รายการตรวจแลป *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            required
+                            placeholder="เช่น Fasting Blood Sugar, CBC, Cholesterol"
+                            value={labForm.test_name}
+                            onChange={(e) => setLabForm({ ...labForm, test_name: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>วันที่ตรวจ *</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            required
+                            value={labForm.test_date}
+                            onChange={(e) => setLabForm({ ...labForm, test_date: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>ผลการตรวจ *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            required
+                            placeholder="เช่น 110, 5.0, Negative"
+                            value={labForm.result_value}
+                            onChange={(e) => setLabForm({ ...labForm, result_value: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>หน่วย (Unit)</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="mg/dL, mmol/L, g/dL"
+                            value={labForm.unit}
+                            onChange={(e) => setLabForm({ ...labForm, unit: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>ค่าปกติอ้างอิง</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. 70-100, < 200"
+                            value={labForm.reference_range}
+                            onChange={(e) => setLabForm({ ...labForm, reference_range: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>หมายเหตุ / การแปลผล</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="เช่น สูงกว่าปกติเล็กน้อย"
+                            value={labForm.notes}
+                            onChange={(e) => setLabForm({ ...labForm, notes: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>สถานะผลแลป</label>
+                          <select
+                            className="form-select"
+                            value={labForm.status}
+                            onChange={(e) => setLabForm({ ...labForm, status: e.target.value as any })}
+                          >
+                            <option value="completed">Completed (เสร็จสิ้น)</option>
+                            <option value="pending">Pending (รอผลตรวจ)</option>
+                            <option value="cancelled">Cancelled (ยกเลิกรายการ)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-secondary" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }} onClick={() => setShowAddLabForm(false)}>ยกเลิก</button>
+                        <button type="submit" disabled={submittingLab} className="btn btn-primary" style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                          {submittingLab ? 'กำลังบันทึก...' : 'บันทึกผลแลป'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {loadingLabs ? (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>กำลังโหลดผลตรวจแลป...</p>
+                  ) : patientLabResults.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: 'var(--text-muted)', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}>ไม่มีผลการตรวจแลปบันทึกไว้สำหรับคนไข้รายนี้</p>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ width: 'auto', marginTop: '0.75rem', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                        onClick={() => setShowAddLabForm(true)}
+                      >
+                        + บันทึกผลแลปแรก
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="opd-table-container" style={{ overflowX: 'auto' }}>
+                      <table className="opd-table" style={{ fontSize: '0.8125rem' }}>
+                        <thead>
+                          <tr>
+                            <th>วันที่ตรวจ</th>
+                            <th>รายการตรวจ</th>
+                            <th style={{ textAlign: 'right' }}>ผลการตรวจ</th>
+                            <th>หน่วย</th>
+                            <th>ค่าอ้างอิงปกติ</th>
+                            <th>สถานะ</th>
+                            <th>หมายเหตุ / แปลผล</th>
+                            <th style={{ width: '60px', textAlign: 'center' }}>จัดการ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {patientLabResults.map((lr) => {
+                            // Check if value is out of range to highlight it
+                            let isOutOfRange = false;
+                            if (lr.reference_range && lr.result_value) {
+                              const match = lr.reference_range.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/);
+                              if (match) {
+                                const min = parseFloat(match[1]);
+                                const max = parseFloat(match[2]);
+                                const val = parseFloat(lr.result_value);
+                                if (!isNaN(val) && (val < min || val > max)) {
+                                  isOutOfRange = true;
+                                }
+                              }
+                            }
+                            return (
+                              <tr key={lr.id}>
+                                <td>{new Date(lr.test_date).toLocaleDateString('th-TH')}</td>
+                                <td style={{ fontWeight: 600 }}>{lr.test_name}</td>
+                                <td style={{ textAlign: 'right', fontWeight: 700, color: isOutOfRange ? 'var(--danger)' : 'inherit' }}>
+                                  {lr.result_value} 
+                                  {isOutOfRange && (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--danger)', background: 'var(--danger-bg)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', border: '1px solid var(--danger-border)', display: 'inline-block' }}>
+                                      H/L
+                                    </span>
+                                  )}
+                                </td>
+                                <td>{lr.unit || '—'}</td>
+                                <td>{lr.reference_range || '—'}</td>
+                                <td>
+                                  <span className={`badge ${lr.status === 'completed' ? 'badge-status-completed' : lr.status === 'pending' ? 'badge-status-waiting' : 'badge-status-cancelled'}`}>
+                                    {lr.status === 'completed' ? 'เสร็จสิ้น' : lr.status === 'pending' ? 'รอผลตรวจ' : 'ยกเลิก'}
+                                  </span>
+                                </td>
+                                <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '180px' }}>{lr.notes || '—'}</td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    style={{ width: 'auto', padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-bg)', color: 'var(--danger-foreground)', border: '1px solid var(--danger-border)' }}
+                                    onClick={() => handleDeleteLabResult(lr.id)}
+                                  >
+                                    ลบ
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

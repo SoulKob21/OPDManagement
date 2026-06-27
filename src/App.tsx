@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import DiabetesScreeningPage from './pages/DiabetesScreeningPage';
+import QuestionnairePage from './pages/QuestionnairePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Import our custom global styles
@@ -54,6 +55,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <DiabetesScreeningPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/questionnaire"
+              element={
+                <ProtectedRoute>
+                  <QuestionnairePage />
                 </ProtectedRoute>
               }
             />
