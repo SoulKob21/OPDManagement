@@ -247,6 +247,8 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats }) => {
               gender: title === 'นาย' || title === 'ด.ช.' ? 'ชาย' : 'หญิง',
               phone_number: '',
               address: '',
+              emergency_contact_name: '',
+              emergency_contact_phone: '',
               medical_right: 'ไม่ระบุ',
             })
             .select()
