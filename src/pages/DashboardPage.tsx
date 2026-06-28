@@ -8,7 +8,6 @@ import DoctorsPage from './DoctorsPage';
 import MedicineDeliveryPage from './MedicineDeliveryPage';
 import PermissionsPage from './PermissionsPage';
 import ChangePasswordPage from './ChangePasswordPage';
-import ImportLabPage from './ImportLabPage';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,13 +21,13 @@ export const DashboardPage: React.FC = () => {
   };
   
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'appointments' | 'queues' | 'doctors' | 'deliveries' | 'permissions' | 'change-password' | 'import-lab'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'patients' | 'appointments' | 'queues' | 'doctors' | 'deliveries' | 'permissions' | 'change-password'>(() => {
     if (location.state && (location.state as any).activeTab) {
       return (location.state as any).activeTab;
     }
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions', 'change-password', 'import-lab'].includes(tabParam)) {
+    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions', 'change-password'].includes(tabParam)) {
       return tabParam as any;
     }
     return 'overview';
@@ -38,7 +37,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions', 'change-password', 'import-lab'].includes(tabParam)) {
+    if (tabParam && ['overview', 'patients', 'appointments', 'queues', 'doctors', 'deliveries', 'permissions', 'change-password'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     } else if (location.state && (location.state as any).activeTab) {
       setActiveTab((location.state as any).activeTab);
@@ -148,8 +147,6 @@ export const DashboardPage: React.FC = () => {
         return <PermissionsPage />;
       case 'change-password':
         return <ChangePasswordPage />;
-      case 'import-lab':
-        return <ImportLabPage onRefreshStats={fetchStats} />;
 
       case 'overview':
       default:

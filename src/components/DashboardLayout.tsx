@@ -89,7 +89,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   };
 
-  const handleSubMenuClick = (view: 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi') => {
+  const handleSubMenuClick = (view: 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi' | 'import-lab') => {
     if (window.innerWidth <= 768) {
       setIsSidebarOpen(false);
     }
@@ -225,21 +225,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     </button>
                   </li>
                 )}
-                {isAllowed('import-lab') && (
-                  <li>
-                    <button
-                      className={`tail-menu-item-btn ${activeMenu === 'import-lab' ? 'active' : ''}`}
-                      onClick={() => handleMenuClick('import-lab')}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                      <span>นำเข้าข้อมูล Lab</span>
-                    </button>
-                  </li>
-                )}
               </ul>
             </div>
           )}
@@ -297,6 +282,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                           🫀 การตรวจคัดกรอง ABI
                         </button>
                       </li>
+                      {isAllowed('import-lab') && (
+                        <li>
+                          <button
+                            className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'import-lab' ? 'active' : ''}`}
+                            onClick={() => handleSubMenuClick('import-lab')}
+                          >
+                            📥 นำเข้าข้อมูล Lab (Excel)
+                          </button>
+                        </li>
+                      )}
                     </ul>
                   )}
                 </li>

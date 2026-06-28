@@ -5,9 +5,10 @@ import { DmSummaryView } from './DmSummaryView';
 import { DmHbA1cFbsView } from './DmHbA1cFbsView';
 import { DmMonofilamentView } from './DmMonofilamentView';
 import { DmAbiView } from './DmAbiView';
+import ImportLabPage from '../ImportLabPage';
 import { DashboardLayout } from '../../components/DashboardLayout';
 
-type DmView = 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi';
+type DmView = 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi' | 'import-lab';
 
 export const DiabetesScreeningPage: React.FC = () => {
   const location = useLocation();
@@ -16,7 +17,7 @@ export const DiabetesScreeningPage: React.FC = () => {
   const [view, setView] = useState<DmView>(() => {
     const params = new URLSearchParams(location.search);
     const viewParam = params.get('view');
-    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi'].includes(viewParam)) {
+    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi', 'import-lab'].includes(viewParam)) {
       return viewParam as DmView;
     }
     return 'summary';
@@ -26,7 +27,7 @@ export const DiabetesScreeningPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const viewParam = params.get('view');
-    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi'].includes(viewParam)) {
+    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi', 'import-lab'].includes(viewParam)) {
       setView(viewParam as DmView);
     } else {
       setView('summary');
@@ -86,6 +87,7 @@ export const DiabetesScreeningPage: React.FC = () => {
         {view === 'hba1c-fbs' && <DmHbA1cFbsView onBack={goToSummary} />}
         {view === 'monofilament' && <DmMonofilamentView onBack={goToSummary} />}
         {view === 'abi' && <DmAbiView onBack={goToSummary} />}
+        {view === 'import-lab' && <ImportLabPage onRefreshStats={fetchStats} />}
       </div>
     );
   };

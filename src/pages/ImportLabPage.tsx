@@ -90,9 +90,10 @@ const generateHN = (hn: string) => hn.trim() || `IMPORT-${Date.now()}`;
 // ============================================================
 interface ImportLabPageProps {
   onRefreshStats?: () => void;
+  onBack?: () => void;
 }
 
-const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats }) => {
+const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack }) => {
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewRows, setPreviewRows] = useState<ExcelRow[]>([]);
@@ -401,16 +402,23 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats }) => {
               อัพโหลดไฟล์ Excel เพื่อนำเข้าผลตรวจ HbA1C เข้าสู่ระบบฐานข้อมูล
             </p>
           </div>
-          <button
-            onClick={downloadTemplate}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto', whiteSpace: 'nowrap' }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            ดาวน์โหลด Template Excel
-          </button>
+          <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
+            <button
+              onClick={downloadTemplate}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto', whiteSpace: 'nowrap' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              ดาวน์โหลด Template Excel
+            </button>
+            {onBack && (
+              <button className="btn btn-secondary" onClick={onBack} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem', height: '38px', display: 'flex', alignItems: 'center' }}>
+                ← กลับหน้าสรุป
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Column guide */}
