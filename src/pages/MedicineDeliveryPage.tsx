@@ -72,7 +72,7 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   const [success, setSuccess] = useState<string | null>(null);
 
   const { allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-deliveries');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [submitting, setSubmitting] = useState(false);

@@ -55,7 +55,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   const [success, setSuccess] = useState<string | null>(null);
 
   const { allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-patients');
 
   // View Mode
   const [viewMode, setViewMode] = useState<ViewMode>('list');

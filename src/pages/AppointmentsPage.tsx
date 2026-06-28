@@ -34,7 +34,7 @@ export const AppointmentsPage: React.FC<{ onRefreshStats?: () => void }> = ({ on
   const [success, setSuccess] = useState<string | null>(null);
 
   const { allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-appointments');
 
   // Filters State
   const [filterDate, setFilterDate] = useState('');

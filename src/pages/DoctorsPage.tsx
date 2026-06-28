@@ -36,7 +36,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
   const [success, setSuccess] = useState<string | null>(null);
 
   const { allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-doctors');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');

@@ -33,12 +33,17 @@ const MENU_OPTIONS = [
   { id: 'doctors',    name: 'จัดการแพทย์',           desc: 'ฐานข้อมูลรายชื่อและตารางปฏิบัติงานของแพทย์' },
   { id: 'permissions', name: 'จัดการสิทธิ์การใช้งาน', desc: 'กำหนดสิทธิ์การมองเห็นเมนูต่าง ๆ ตาม User ID' },
   // ── ACTIONS ───────────────────────────────────
-  { id: 'delete-data', name: '🗑️ ลบข้อมูล', desc: 'อนุญาตให้ลบข้อมูลได้ทุกหน้า (ผู้ป่วย, แพทย์, คิว, ส่งยา, สิทธิ์ ฯลฯ) — หากไม่มีสิทธิ์นี้ ปุ่มลบจะถูกซ่อน' },
+  { id: 'delete-patients', name: '🗑️ ลบข้อมูลผู้ป่วย', desc: 'อนุญาตให้ลบระเบียนผู้ป่วย โรคประจำตัว และผลแลป' },
+  { id: 'delete-appointments', name: '🗑️ ยกเลิกนัดหมาย', desc: 'อนุญาตให้ยกเลิกรายการนัดหมายผู้ป่วย' },
+  { id: 'delete-queues', name: '🗑️ ยกเลิกคิว OPD', desc: 'อนุญาตให้ยกเลิกคิวรักษาผู้ป่วยประจำวัน' },
+  { id: 'delete-deliveries', name: '🗑️ ลบประวัติส่งยา', desc: 'อนุญาตให้ลบประวัติหรือรายการส่งยาทางไปรษณีย์' },
+  { id: 'delete-doctors', name: '🗑️ ลบข้อมูลแพทย์', desc: 'อนุญาตให้ลบข้อมูลแพทย์ออกจากระบบ' },
+  { id: 'delete-permissions', name: '🗑️ ลบการตั้งค่าสิทธิ์', desc: 'อนุญาตให้ลบการตั้งค่าสิทธิ์การใช้งานของผู้อื่น' },
 ];
 
 export const PermissionsPage: React.FC = () => {
   const { user, fetchUserPermissions, allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-permissions');
   
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);

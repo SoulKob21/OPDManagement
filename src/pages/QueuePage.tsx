@@ -11,7 +11,7 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
   const [success, setSuccess] = useState<string | null>(null);
 
   const { allowedMenus } = useAuth();
-  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-queues');
 
   // Active view: 'board' (บอร์ดบริหารคิว) or 'table' (ตารางคิวทั้งหมด)
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
