@@ -35,15 +35,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   }, [activeMenu, allowedMenus, navigate]);
 
-  // Diabetes submenu expanded state
-  const [isDiabetesOpen, setIsDiabetesOpen] = useState(activeMenu === 'diabetes-screening');
-
-  // Keep submenu open if activeMenu changes to diabetes-screening
-  useEffect(() => {
-    if (activeMenu === 'diabetes-screening') {
-      setIsDiabetesOpen(true);
-    }
-  }, [activeMenu]);
 
   // Sidebar collapsible state
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -74,33 +65,28 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   };
 
-  const handleMenuClick = (menu: typeof activeMenu) => {
-    if (window.innerWidth <= 768 && menu !== 'diabetes-screening') {
-      setIsSidebarOpen(false);
-    }
+  const navigateDm = (view: string) => {
+    if (window.innerWidth <= 768) setIsSidebarOpen(false);
+    navigate(`/DiabetesScreeningPage?view=${view}`);
+  };
 
-    if (menu === 'diabetes-screening') {
-      setIsDiabetesOpen(!isDiabetesOpen);
-      if (isAllowed('diabetes-screening')) {
-        navigate('/DiabetesScreeningPage?view=summary');
-      } else if (isAllowed('import-lab')) {
-        navigate('/DiabetesScreeningPage?view=import-lab');
-      }
-    } else if (menu === 'questionnaire') {
+  const handleMenuClick = (menu: typeof activeMenu) => {
+    if (window.innerWidth <= 768) setIsSidebarOpen(false);
+    if (menu === 'questionnaire') {
       navigate('/questionnaire');
+    } else if (menu === 'diabetes-screening') {
+      navigate('/DiabetesScreeningPage?view=summary');
     } else {
       navigate(`/dashboard?tab=${menu}`, { state: { activeTab: menu } });
     }
   };
 
-  const handleSubMenuClick = (view: 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi' | 'import-lab') => {
-    if (window.innerWidth <= 768) {
-      setIsSidebarOpen(false);
-    }
-    navigate(`/DiabetesScreeningPage?view=${view}`);
-  };
-
-  const hasMenuSection = isAllowed('overview') || isAllowed('patients') || isAllowed('appointments') || isAllowed('queues') || isAllowed('deliveries') || isAllowed('questionnaire') || isAllowed('import-lab');
+  const hasMenuSection = isAllowed('overview') || isAllowed('patients') || isAllowed('appointments') || isAllowed('queues') || isAllowed('deliveries');
+  const hasSpecializedSection = isAllowed('diabetes-screening') || isAllowed('hba1c-fbs') || isAllowed('monofilament') || isAllowed('abi') || isAllowed('import-lab') || isAllowed('questionnaire');
+  const isDmAllowed = isAllowed('diabetes-screening');
+  const isHba1cAllowed = isDmAllowed || isAllowed('hba1c-fbs');
+  const isMonoAllowed = isDmAllowed || isAllowed('monofilament');
+  const isAbiAllowed = isDmAllowed || isAllowed('abi');
   const hasManagementSection = isAllowed('doctors') || isAllowed('permissions');
 
   return (
@@ -212,6 +198,87 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     </button>
                   </li>
                 )}
+
+              </ul>
+            </div>
+          )}
+
+          {/* Specialized Services Group */}
+          {hasSpecializedSection && (
+            <div className="tail-menu-group">
+              <span className="tail-menu-group-title">SPECIALIZED</span>
+              <ul className="tail-menu-list">
+
+                {isDmAllowed && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' && (!activeSubMenu || activeSubMenu === 'summary') ? 'active' : ''}`}
+                      onClick={() => navigateDm('summary')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                      <span>คัดกรองเบาหวาน</span>
+                    </button>
+                  </li>
+                )}
+
+                {isHba1cAllowed && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'hba1c-fbs' ? 'active' : ''}`}
+                      onClick={() => navigateDm('hba1c-fbs')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22C12 22 4 18 4 12V5l8-3 8 3v7c0 6-8 10-8 10z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                      </svg>
+                      <span>🩸 HbA1C และ FBS</span>
+                    </button>
+                  </li>
+                )}
+
+                {isMonoAllowed && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'monofilament' ? 'active' : ''}`}
+                      onClick={() => navigateDm('monofilament')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+                      </svg>
+                      <span>🦶 ตรวจเท้า Monofilament</span>
+                    </button>
+                  </li>
+                )}
+
+                {isAbiAllowed && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'abi' ? 'active' : ''}`}
+                      onClick={() => navigateDm('abi')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                      </svg>
+                      <span>🫀 ตรวจคัดกรอง ABI</span>
+                    </button>
+                  </li>
+                )}
+
+                {isAllowed('import-lab') && (
+                  <li>
+                    <button
+                      className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'import-lab' ? 'active' : ''}`}
+                      onClick={() => navigateDm('import-lab')}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      <span>📥 นำเข้าข้อมูล Lab</span>
+                    </button>
+                  </li>
+                )}
+
                 {isAllowed('questionnaire') && (
                   <li>
                     <button
@@ -229,76 +296,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     </button>
                   </li>
                 )}
-              </ul>
-            </div>
-          )}
 
-          {/* Specialized Services Group */}
-          {(isAllowed('diabetes-screening') || isAllowed('import-lab')) && (
-            <div className="tail-menu-group">
-              <span className="tail-menu-group-title">SPECIALIZED</span>
-              <ul className="tail-menu-list">
-                <li>
-                  <button
-                    className={`tail-menu-item-btn ${activeMenu === 'diabetes-screening' ? 'active' : ''}`}
-                    onClick={() => handleMenuClick('diabetes-screening')}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
-                    <span>คัดกรองเบาหวาน</span>
-                    <svg className={`tail-chevron-icon ${isDiabetesOpen ? 'rotate' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-
-                  {isDiabetesOpen && (
-                    <ul className="tail-submenu-list">
-                      <li>
-                        <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'summary' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('summary')}
-                        >
-                          สรุปรายปี
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'hba1c-fbs' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('hba1c-fbs')}
-                        >
-                          🩸 การตรวจ HbA1C และ FBS
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'monofilament' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('monofilament')}
-                        >
-                          🦶 การตรวจคัดกรองเท้า Monofilament
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'abi' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('abi')}
-                        >
-                          🫀 การตรวจคัดกรอง ABI
-                        </button>
-                      </li>
-                      {isAllowed('import-lab') && (
-                        <li>
-                          <button
-                            className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'import-lab' ? 'active' : ''}`}
-                            onClick={() => handleSubMenuClick('import-lab')}
-                          >
-                            📥 นำเข้าข้อมูล Lab (Excel)
-                          </button>
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </li>
               </ul>
             </div>
           )}
