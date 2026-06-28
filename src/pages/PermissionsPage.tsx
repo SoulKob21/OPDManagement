@@ -21,10 +21,11 @@ const MENU_OPTIONS = [
   { id: 'appointments', name: 'นัดหมายผู้ป่วย', desc: 'บันทึกวัน-เวลา และสาขาที่นัดหมายแพทย์ล่วงหน้า' },
   { id: 'queues', name: 'จัดการคิว OPD', desc: 'รันลำดับคิวประจำวัน คัดกรองอาการ ส่งต่อรักษา และจ่ายยา' },
   { id: 'deliveries', name: 'ประวัติส่งยา', desc: 'จัดการประวัติการส่งยาและดาวน์โหลดไฟล์ส่งข้อมูลทางไปรษณีย์' },
-  { id: 'diabetes-screening', name: 'คัดกรองเบาหวาน', desc: 'แบบประเมินและคัดกรองความเสี่ยงเบาหวานรายปี' },
+  { id: 'diabetes-screening', name: 'คัดกรองเบาหวาน', desc: 'แบบประเมินและคัดกรองความเสี่ยงเบาหวานรายปี (HbA1C, Monofilament, ABI)' },
   { id: 'questionnaire', name: 'ทำแบบสอบถาม', desc: 'หน้ากรอกแบบประเมินและแบบสอบถามสุขภาพคนไข้' },
+  { id: 'import-lab', name: 'นำเข้าข้อมูล Lab', desc: 'นำเข้าผล Lab Hemoglobin A1C และข้อมูลคนไข้จากไฟล์ Excel' },
   { id: 'doctors', name: 'จัดการแพทย์', desc: 'ฐานข้อมูลรายชื่อและตารางปฏิบัติงานของแพทย์' },
-  { id: 'permissions', name: 'จัดการสิทธิ์การใช้งาน', desc: 'กำหนดสิทธิ์การมองเห็นเมนูต่าง ๆ ตาม User ID' }
+  { id: 'permissions', name: 'จัดการสิทธิ์การใช้งาน', desc: 'กำหนดสิทธิ์การมองเห็นเมนูต่าง ๆ ตาม User ID' },
 ];
 
 export const PermissionsPage: React.FC = () => {
