@@ -4,6 +4,7 @@ import type { MedicineDelivery, Patient, Doctor, DeliveryType, DeliveryStatus } 
 import { DELIVERY_TYPE_LABELS, DELIVERY_STATUS_LABELS, MEDICAL_RIGHTS, GENDERS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 type ViewMode = 'list' | 'create';
@@ -69,6 +70,9 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [submitting, setSubmitting] = useState(false);
@@ -1416,13 +1420,15 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                           >
                             เปลี่ยนสถานะ
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ width: 'auto', padding: '0.3rem 0.65rem', fontSize: '0.7rem' }}
-                            onClick={() => handleDeleteDelivery(d.id)}
-                          >
-                            ลบ
-                          </button>
+                          {canDelete && (
+                            <button
+                              className="btn btn-danger"
+                              style={{ width: 'auto', padding: '0.3rem 0.65rem', fontSize: '0.7rem' }}
+                              onClick={() => handleDeleteDelivery(d.id)}
+                            >
+                              ลบ
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

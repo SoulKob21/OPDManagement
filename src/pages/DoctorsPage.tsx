@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Doctor } from '../types/opd';
 import { DEPARTMENTS } from '../types/opd';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
 
 type ViewMode = 'list' | 'create' | 'edit';
 
@@ -33,6 +34,9 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -424,6 +428,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
                       >
                         แก้ไข
                       </button>
+                      {canDelete && (
                       <button
                         className="btn btn-danger"
                         style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
@@ -431,6 +436,7 @@ export const DoctorsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefre
                       >
                         ลบ
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

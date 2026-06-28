@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Appointment, Patient, QueuePriority } from '../types/opd';
 import { DEPARTMENTS, APPOINTMENT_STATUS_LABELS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AppointmentFormState {
   patient_id: string;
@@ -31,6 +32,9 @@ export const AppointmentsPage: React.FC<{ onRefreshStats?: () => void }> = ({ on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
 
   // Filters State
   const [filterDate, setFilterDate] = useState('');
@@ -476,13 +480,15 @@ export const AppointmentsPage: React.FC<{ onRefreshStats?: () => void }> = ({ on
                           >
                             แก้ไข
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                            onClick={(e) => handleCancelAppointment(app.id, e)}
-                          >
-                            ยกเลิก
-                          </button>
+                          {canDelete && (
+                            <button
+                              className="btn btn-danger"
+                              style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                              onClick={(e) => handleCancelAppointment(app.id, e)}
+                            >
+                              ยกเลิก
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

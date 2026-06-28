@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Queue, Patient, Appointment, QueuePriority, QueueStatus } from '../types/opd';
 import { DEPARTMENTS, PRIORITY_LABELS, QUEUE_STATUS_LABELS } from '../types/opd';
+import { useAuth } from '../contexts/AuthContext';
 
 export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefreshStats }) => {
   const [queues, setQueues] = useState<Queue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
 
   // Active view: 'board' (บอร์ดบริหารคิว) or 'table' (ตารางคิวทั้งหมด)
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
@@ -534,14 +538,16 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
                             )}
 
                             {/* Cancel button */}
-                            <button
-                              className="btn btn-danger"
-                              style={{ width: 'auto', padding: '0.25rem', borderRadius: '4px' }}
-                              title="ยกเลิกคิวนี้"
-                              onClick={(e) => openCancelModal(q, e)}
-                            >
-                              &times;
-                            </button>
+                            {canDelete && (
+                              <button
+                                className="btn btn-danger"
+                                style={{ width: 'auto', padding: '0.25rem', borderRadius: '4px' }}
+                                title="ยกเลิกคิวนี้"
+                                onClick={(e) => openCancelModal(q, e)}
+                              >
+                                &times;
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))
@@ -624,13 +630,15 @@ export const QueuePage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefresh
                                 >
                                   ข้ามคิว
                                 </button>
-                                <button
-                                  className="btn btn-danger"
-                                  style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                                  onClick={(e) => openCancelModal(q, e)}
-                                >
-                                  ยกเลิก
-                                </button>
+                                {canDelete && (
+                                  <button
+                                    className="btn btn-danger"
+                                    style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                                    onClick={(e) => openCancelModal(q, e)}
+                                  >
+                                    ยกเลิก
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>

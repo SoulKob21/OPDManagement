@@ -32,10 +32,13 @@ const MENU_OPTIONS = [
   // ── MANAGEMENT ────────────────────────────────
   { id: 'doctors',    name: 'จัดการแพทย์',           desc: 'ฐานข้อมูลรายชื่อและตารางปฏิบัติงานของแพทย์' },
   { id: 'permissions', name: 'จัดการสิทธิ์การใช้งาน', desc: 'กำหนดสิทธิ์การมองเห็นเมนูต่าง ๆ ตาม User ID' },
+  // ── ACTIONS ───────────────────────────────────
+  { id: 'delete-data', name: '🗑️ ลบข้อมูล', desc: 'อนุญาตให้ลบข้อมูลได้ทุกหน้า (ผู้ป่วย, แพทย์, คิว, ส่งยา, สิทธิ์ ฯลฯ) — หากไม่มีสิทธิ์นี้ ปุ่มลบจะถูกซ่อน' },
 ];
 
 export const PermissionsPage: React.FC = () => {
-  const { user, fetchUserPermissions } = useAuth();
+  const { user, fetchUserPermissions, allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
   
   const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,15 +419,17 @@ export const PermissionsPage: React.FC = () => {
                             >
                               แก้ไขสิทธิ์
                             </button>
-                            <button
-                              className="btn btn-danger"
-                              style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                              onClick={() => handleDelete(perm)}
-                              disabled={isSelf ?? false}
-                              title={isSelf ? 'ไม่สามารถลบสิทธิ์บัญชีตัวเองได้' : ''}
-                            >
-                              ลบ
-                            </button>
+                            {canDelete && (
+                              <button
+                                className="btn btn-danger"
+                                style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                                onClick={() => handleDelete(perm)}
+                                disabled={isSelf ?? false}
+                                title={isSelf ? 'ไม่สามารถลบสิทธิ์บัญชีตัวเองได้' : ''}
+                              >
+                                ลบ
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

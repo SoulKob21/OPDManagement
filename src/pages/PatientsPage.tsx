@@ -4,6 +4,7 @@ import type { Patient, Doctor, PatientDisease, PatientLabResult } from '../types
 import { GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
@@ -52,6 +53,9 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-data');
 
   // View Mode
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -957,6 +961,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
             >
               แก้ไขระเบียน
             </button>
+            {canDelete && (
             <button
               className="btn btn-danger"
               style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8125rem' }}
@@ -964,6 +969,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
             >
               ลบระเบียน
             </button>
+            )}
           </div>
         </div>
 
@@ -1258,6 +1264,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                                 >
                                   สลับสถานะ
                                 </button>
+                                {canDelete && (
                                 <button
                                   type="button"
                                   className="btn btn-danger"
@@ -1266,6 +1273,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                                 >
                                   ลบ
                                 </button>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -1447,6 +1455,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                                 </td>
                                 <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '180px' }}>{lr.notes || '—'}</td>
                                 <td style={{ textAlign: 'center' }}>
+                                  {canDelete && (
                                   <button
                                     type="button"
                                     className="btn btn-danger"
@@ -1455,6 +1464,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                                   >
                                     ลบ
                                   </button>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -1567,6 +1577,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                           >
                             แก้ไข
                           </button>
+                          {canDelete && (
                           <button
                             className="btn btn-danger"
                             style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
@@ -1574,6 +1585,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                           >
                             ลบ
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>
