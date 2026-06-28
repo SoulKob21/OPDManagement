@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { DmSummaryView } from './DmSummaryView';
-import { DmScreeningListView } from './DmScreeningListView';
-import { DmPlaceholderView } from './DmPlaceholderView';
+import { DmHbA1cFbsView } from './DmHbA1cFbsView';
+import { DmMonofilamentView } from './DmMonofilamentView';
+import { DmAbiView } from './DmAbiView';
 import { DashboardLayout } from '../../components/DashboardLayout';
 
 type DmView = 'summary' | 'mock1' | 'mock2' | 'mock3';
@@ -65,11 +66,7 @@ export const DiabetesScreeningPage: React.FC = () => {
       return (
         <div className="dashboard-card" style={{ textAlign: 'center', padding: '3.5rem 2rem' }}>
           <div className="alert alert-danger" style={{ display: 'inline-flex', marginBottom: '1.5rem', textAlign: 'left' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginRight: 8 }} aria-hidden="true">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginRight: 8 }} aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <div>
               <strong>ฐานข้อมูลยังไม่พร้อมใช้งาน!</strong> <br />
               กรุณาคัดลอกโค้ด SQL จากไฟล์ <a href="file:///f:/Github/OPDManagement/supabase/opd-schema.sql" style={{ color: 'inherit', fontWeight: 'bold', textDecoration: 'underline' }}>supabase/opd-schema.sql</a> ไปวางและรันในหน้า <strong>SQL Editor</strong> ของบอร์ดควบคุม Supabase ของท่านเสียก่อน เพื่อสร้างตารางระบบและสิทธิ์การเข้าถึง (RLS)
@@ -86,9 +83,9 @@ export const DiabetesScreeningPage: React.FC = () => {
     return (
       <div>
         {view === 'summary' && <DmSummaryView />}
-        {view === 'mock1' && <DmScreeningListView onBack={goToSummary} />}
-        {view === 'mock2' && <DmPlaceholderView title="Mock Menu 2" onBack={goToSummary} />}
-        {view === 'mock3' && <DmPlaceholderView title="Mock Menu 3" onBack={goToSummary} />}
+        {view === 'mock1' && <DmHbA1cFbsView onBack={goToSummary} />}
+        {view === 'mock2' && <DmMonofilamentView onBack={goToSummary} />}
+        {view === 'mock3' && <DmAbiView onBack={goToSummary} />}
       </div>
     );
   };

@@ -278,7 +278,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                           className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock1' ? 'active' : ''}`}
                           onClick={() => handleSubMenuClick('mock1')}
                         >
-                          Mock Menu 1
+                          🩸 การตรวจ HbA1C และ FBS
                         </button>
                       </li>
                       <li>
@@ -286,7 +286,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                           className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock2' ? 'active' : ''}`}
                           onClick={() => handleSubMenuClick('mock2')}
                         >
-                          Mock Menu 2
+                          🦶 การตรวจคัดกรองเท้า Monofilament
                         </button>
                       </li>
                       <li>
@@ -294,7 +294,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                           className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock3' ? 'active' : ''}`}
                           onClick={() => handleSubMenuClick('mock3')}
                         >
-                          Mock Menu 3
+                          🫀 การตรวจคัดกรอง ABI
                         </button>
                       </li>
                     </ul>
