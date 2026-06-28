@@ -89,7 +89,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   };
 
-  const handleSubMenuClick = (view: 'summary' | 'mock1' | 'mock2' | 'mock3') => {
+  const handleSubMenuClick = (view: 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi') => {
     if (window.innerWidth <= 768) {
       setIsSidebarOpen(false);
     }
@@ -275,24 +275,24 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       </li>
                       <li>
                         <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock1' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('mock1')}
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'hba1c-fbs' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('hba1c-fbs')}
                         >
                           🩸 การตรวจ HbA1C และ FBS
                         </button>
                       </li>
                       <li>
                         <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock2' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('mock2')}
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'monofilament' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('monofilament')}
                         >
                           🦶 การตรวจคัดกรองเท้า Monofilament
                         </button>
                       </li>
                       <li>
                         <button
-                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'mock3' ? 'active' : ''}`}
-                          onClick={() => handleSubMenuClick('mock3')}
+                          className={`tail-submenu-item-btn ${activeMenu === 'diabetes-screening' && activeSubMenu === 'abi' ? 'active' : ''}`}
+                          onClick={() => handleSubMenuClick('abi')}
                         >
                           🫀 การตรวจคัดกรอง ABI
                         </button>

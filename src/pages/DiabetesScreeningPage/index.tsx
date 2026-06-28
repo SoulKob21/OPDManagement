@@ -7,7 +7,7 @@ import { DmMonofilamentView } from './DmMonofilamentView';
 import { DmAbiView } from './DmAbiView';
 import { DashboardLayout } from '../../components/DashboardLayout';
 
-type DmView = 'summary' | 'mock1' | 'mock2' | 'mock3';
+type DmView = 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi';
 
 export const DiabetesScreeningPage: React.FC = () => {
   const location = useLocation();
@@ -16,7 +16,7 @@ export const DiabetesScreeningPage: React.FC = () => {
   const [view, setView] = useState<DmView>(() => {
     const params = new URLSearchParams(location.search);
     const viewParam = params.get('view');
-    if (viewParam && ['summary', 'mock1', 'mock2', 'mock3'].includes(viewParam)) {
+    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi'].includes(viewParam)) {
       return viewParam as DmView;
     }
     return 'summary';
@@ -26,7 +26,7 @@ export const DiabetesScreeningPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const viewParam = params.get('view');
-    if (viewParam && ['summary', 'mock1', 'mock2', 'mock3'].includes(viewParam)) {
+    if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi'].includes(viewParam)) {
       setView(viewParam as DmView);
     } else {
       setView('summary');
@@ -83,9 +83,9 @@ export const DiabetesScreeningPage: React.FC = () => {
     return (
       <div>
         {view === 'summary' && <DmSummaryView />}
-        {view === 'mock1' && <DmHbA1cFbsView onBack={goToSummary} />}
-        {view === 'mock2' && <DmMonofilamentView onBack={goToSummary} />}
-        {view === 'mock3' && <DmAbiView onBack={goToSummary} />}
+        {view === 'hba1c-fbs' && <DmHbA1cFbsView onBack={goToSummary} />}
+        {view === 'monofilament' && <DmMonofilamentView onBack={goToSummary} />}
+        {view === 'abi' && <DmAbiView onBack={goToSummary} />}
       </div>
     );
   };
@@ -94,15 +94,15 @@ export const DiabetesScreeningPage: React.FC = () => {
     <DashboardLayout activeMenu="diabetes-screening" activeSubMenu={view} title="คัดกรองเบาหวาน">
       {/* Stats row */}
       <div className="stats-row">
-        <div className="stat-card card-patients" style={{ cursor: 'pointer' }} onClick={() => setView('mock1')}>
+        <div className="stat-card card-patients" style={{ cursor: 'pointer' }} onClick={() => setView('hba1c-fbs')}>
           <div className="stat-value" style={{ color: 'var(--primary)' }}>1,248</div>
           <div className="stat-label">ผู้ป่วยคัดกรองทั้งหมด</div>
         </div>
-        <div className="stat-card card-queues" style={{ cursor: 'pointer' }} onClick={() => setView('mock2')}>
+        <div className="stat-card card-queues" style={{ cursor: 'pointer' }} onClick={() => setView('monofilament')}>
           <div className="stat-value" style={{ color: 'var(--accent-2)' }}>327</div>
           <div className="stat-label">พบความเสี่ยงสูง</div>
         </div>
-        <div className="stat-card card-deliveries" style={{ cursor: 'pointer' }} onClick={() => setView('mock3')}>
+        <div className="stat-card card-deliveries" style={{ cursor: 'pointer' }} onClick={() => setView('abi')}>
           <div className="stat-value" style={{ color: 'var(--success)' }}>921</div>
           <div className="stat-label">ปกติ / ความเสี่ยงต่ำ</div>
         </div>
