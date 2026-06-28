@@ -7,11 +7,13 @@ import { DmMonofilamentView } from './DmMonofilamentView';
 import { DmAbiView } from './DmAbiView';
 import ImportLabPage from '../ImportLabPage';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { useAuth } from '../../contexts/AuthContext';
 
 type DmView = 'summary' | 'hba1c-fbs' | 'monofilament' | 'abi' | 'import-lab';
 
 export const DiabetesScreeningPage: React.FC = () => {
   const location = useLocation();
+  const { allowedMenus } = useAuth();
 
   // Navigation Subview State
   const [view, setView] = useState<DmView>(() => {
@@ -19,6 +21,9 @@ export const DiabetesScreeningPage: React.FC = () => {
     const viewParam = params.get('view');
     if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi', 'import-lab'].includes(viewParam)) {
       return viewParam as DmView;
+    }
+    if (allowedMenus !== null && !allowedMenus.includes('diabetes-screening') && allowedMenus.includes('import-lab')) {
+      return 'import-lab';
     }
     return 'summary';
   });
@@ -30,9 +35,13 @@ export const DiabetesScreeningPage: React.FC = () => {
     if (viewParam && ['summary', 'hba1c-fbs', 'monofilament', 'abi', 'import-lab'].includes(viewParam)) {
       setView(viewParam as DmView);
     } else {
-      setView('summary');
+      if (allowedMenus !== null && !allowedMenus.includes('diabetes-screening') && allowedMenus.includes('import-lab')) {
+        setView('import-lab');
+      } else {
+        setView('summary');
+      }
     }
-  }, [location.search]);
+  }, [location.search, allowedMenus]);
 
   const [dbWarning, setDbWarning] = useState<boolean>(false);
 

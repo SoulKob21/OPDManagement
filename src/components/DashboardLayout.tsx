@@ -81,7 +81,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
     if (menu === 'diabetes-screening') {
       setIsDiabetesOpen(!isDiabetesOpen);
-      navigate('/DiabetesScreeningPage?view=summary');
+      if (isAllowed('diabetes-screening')) {
+        navigate('/DiabetesScreeningPage?view=summary');
+      } else if (isAllowed('import-lab')) {
+        navigate('/DiabetesScreeningPage?view=import-lab');
+      }
     } else if (menu === 'questionnaire') {
       navigate('/questionnaire');
     } else {
@@ -230,7 +234,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           )}
 
           {/* Specialized Services Group */}
-          {isAllowed('diabetes-screening') && (
+          {(isAllowed('diabetes-screening') || isAllowed('import-lab')) && (
             <div className="tail-menu-group">
               <span className="tail-menu-group-title">SPECIALIZED</span>
               <ul className="tail-menu-list">
