@@ -503,8 +503,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           </div>
 
           {/* ── Step 2: Lab Results ── */}
-          {(selectedPatient || (patientNotFound && miniPatientForm.first_name)) && (
-            <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem' }}>
+          <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem' }}>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
                 ขั้นตอนที่ 2: บันทึกผลตรวจ
               </h4>
@@ -552,9 +551,10 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                   </div>
                 </div>
               </div>
-              {formErrors.lab && <span className="form-error" style={{ marginTop: '0.5rem', display: 'block' }}>{formErrors.lab}</span>}
+            {formErrors.lab && <span className="form-error" style={{ marginTop: '0.5rem', display: 'block' }}>{formErrors.lab}</span>}
             </div>
-          )}
+
+
 
           {saveSuccess && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{saveSuccess}</div>}
           {saveError && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{saveError}</div>}
