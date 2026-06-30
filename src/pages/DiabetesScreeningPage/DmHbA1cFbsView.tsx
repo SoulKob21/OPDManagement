@@ -320,12 +320,13 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [listError, setListError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
 
+  const currentYear = new Date().getFullYear();
   const yearOptions = [
     { value: '', label: 'ทั้งหมด' },
-    ...Array.from(new Set([
-      new Date().getFullYear().toString(),
-      ...listData.map(r => r.hba1cDate.slice(0, 4))
-    ].filter(Boolean))).sort().map(y => ({ value: y, label: `${parseInt(y) + 543} (${y})` }))
+    ...Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
+      const y = 2024 + i;
+      return { value: y.toString(), label: (y + 543).toString() };
+    })
   ];
 
 
@@ -963,7 +964,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       {/* Filter Bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'flex-end', marginBottom: '1rem', padding: '0.875rem 1rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>ปี (ค.ศ.)</label>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>ปี (พ.ศ.)</label>
           <CustomSelect value={filterYear} onChange={val => { setFilterYear(val); setPage(1); }} options={yearOptions} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
