@@ -421,11 +421,12 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       // Result filter (based on HbA1c value)
       if (filterResult) {
         if (filterResult === 'ปกติ') {
-          query = query.lt('result_value', '5.7');
+          query = query.filter('result_value::numeric', 'lt', 5.7);
         } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
-          query = query.gte('result_value', '5.7').lt('result_value', '6.5');
+          query = query.filter('result_value::numeric', 'gte', 5.7)
+                       .filter('result_value::numeric', 'lt', 6.5);
         } else if (filterResult === 'Diabetes') {
-          query = query.gte('result_value', '6.5');
+          query = query.filter('result_value::numeric', 'gte', 6.5);
         }
       }
 
@@ -570,13 +571,14 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         .gte('test_date', startDate)
         .lte('test_date', endDate);
       
-      if (filterResult) {
-        if (filterResult === 'ปกติ') {
-          countQuery = countQuery.lt('result_value', '5.7');
-        } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
-          countQuery = countQuery.gte('result_value', '5.7').lt('result_value', '6.5');
-        } else if (filterResult === 'Diabetes') {
-          countQuery = countQuery.gte('result_value', '6.5');
+      if (exportResult) {
+        if (exportResult === 'ปกติ') {
+          countQuery = countQuery.filter('result_value::numeric', 'lt', 5.7);
+        } else if (exportResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
+          countQuery = countQuery.filter('result_value::numeric', 'gte', 5.7)
+                                 .filter('result_value::numeric', 'lt', 6.5);
+        } else if (exportResult === 'Diabetes') {
+          countQuery = countQuery.filter('result_value::numeric', 'gte', 6.5);
         }
       }
       
@@ -603,13 +605,14 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           .gte('test_date', startDate)
           .lte('test_date', endDate);
           
-        if (filterResult) {
-          if (filterResult === 'ปกติ') {
-            query = query.lt('result_value', '5.7');
-          } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
-            query = query.gte('result_value', '5.7').lt('result_value', '6.5');
-          } else if (filterResult === 'Diabetes') {
-            query = query.gte('result_value', '6.5');
+        if (exportResult) {
+          if (exportResult === 'ปกติ') {
+            query = query.filter('result_value::numeric', 'lt', 5.7);
+          } else if (exportResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
+            query = query.filter('result_value::numeric', 'gte', 5.7)
+                         .filter('result_value::numeric', 'lt', 6.5);
+          } else if (exportResult === 'Diabetes') {
+            query = query.filter('result_value::numeric', 'gte', 6.5);
           }
         }
         
