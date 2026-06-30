@@ -331,6 +331,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportYear, setExportYear] = useState(currentYearStr);
   const [exportMonth, setExportMonth] = useState(currentMonthStr);
+  const [exportResult, setExportResult] = useState('');
 
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
@@ -1268,6 +1269,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           onClick={() => {
             setExportYear(filterYear || currentYearStr);
             setExportMonth(filterMonth || currentMonthStr);
+            setExportResult(filterResult);
             setExportSuccess(false);
             setExportProgress(0);
             setExportMessage('');
@@ -1448,21 +1450,27 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>เลือกปีและเดือนที่ต้องการนำออกรายงาน:</span>
               
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.15rem', marginBottom: '0.15rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ปี (พ.ศ.)</label>
-                  <CustomSelect value={exportYear} onChange={val => setExportYear(val)} options={yearOptions} />
-                </div>
-                {exportMode === 'month' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.15rem', marginBottom: '0.15rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>เดือน</label>
-                    <CustomSelect 
-                      value={exportMonth} 
-                      onChange={val => setExportMonth(val)} 
-                      options={monthOptions.filter(o => o.value !== '')}
-                    />
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ปี (พ.ศ.)</label>
+                    <CustomSelect value={exportYear} onChange={val => setExportYear(val)} options={yearOptions} />
                   </div>
-                )}
+                  {exportMode === 'month' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>เดือน</label>
+                      <CustomSelect 
+                        value={exportMonth} 
+                        onChange={val => setExportMonth(val)} 
+                        options={monthOptions.filter(o => o.value !== '')}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ผลการคัดกรอง</label>
+                  <CustomSelect value={exportResult} onChange={val => setExportResult(val)} options={resultOptions} />
+                </div>
               </div>
 
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '0.25rem' }}>เลือกโหมดขอบเขตข้อมูลเพื่อนำออก Excel:</span>
