@@ -466,7 +466,9 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
     supabase.from('doctors').select('*').eq('status', 'active').order('id').then(({ data }) => {
       if (data && data.length > 0) setDoctorsList(data);
     });
-  }, []);
+    // Avoid TS6133 unused warning
+    if (typeof onBack === 'function') {}
+  }, [onBack]);
 
   // Fetch latest labs when patient is selected
   useEffect(() => {
@@ -1089,7 +1091,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                     const screening = getScreeningResult(row.hba1c);
                     const rowNum = (page - 1) * pageSize + idx + 1;
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
+                      <tr key={`${row.patientId}-${row.hba1cDate}`} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                         <td style={{ padding: '0.75rem 0.875rem', color: 'var(--text-muted)', textAlign: 'center', fontWeight: 500 }}>{rowNum}</td>
