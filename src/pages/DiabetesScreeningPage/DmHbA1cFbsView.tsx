@@ -1417,27 +1417,11 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-        }}>
-          <div style={{
-            background: 'var(--bg-surface-solid)',
-            borderRadius: 'var(--radius-lg)',
+        <div className="opd-modal-overlay" style={{ zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
+          <div className="opd-modal" onClick={e => e.stopPropagation()} style={{
             width: '450px',
             maxWidth: '90%',
             padding: '1.75rem',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-xl), 0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1.25rem',
