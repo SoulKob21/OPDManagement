@@ -271,10 +271,14 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [showForm, setShowForm] = useState(false);
 
   // ── Filter states ──────────────────────────────────────────
-  const [filterYear, setFilterYear] = useState('');
-  const [filterMonth, setFilterMonth] = useState('');
+  const currentYearStr = new Date().getFullYear().toString();
+  const currentMonthStr = String(new Date().getMonth() + 1).padStart(2, '0');
+
+  const [filterYear, setFilterYear] = useState(currentYearStr);
+  const [filterMonth, setFilterMonth] = useState(currentMonthStr);
   const [filterDate, setFilterDate] = useState('');
   const [filterResult, setFilterResult] = useState('');
+
 
 
   // ── Patient search states ──────────────────────────────────
@@ -314,13 +318,16 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [listData, setListData] = useState<ListRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   const yearOptions = [
     { value: '', label: 'ทั้งหมด' },
-    ...Array.from(new Set(listData.map(r => r.hba1cDate.slice(0, 4))))
-      .sort()
-      .map(y => ({ value: y, label: `${parseInt(y) + 543} (${y})` }))
+    ...Array.from(new Set([
+      new Date().getFullYear().toString(),
+      ...listData.map(r => r.hba1cDate.slice(0, 4))
+    ].filter(Boolean))).sort().map(y => ({ value: y, label: `${parseInt(y) + 543} (${y})` }))
   ];
+
 
   const monthOptions = [
     { value: '', label: 'ทั้งหมด' },
@@ -356,17 +363,59 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       // ── DEV: use mock data ──────────────────────────────────
       if (import.meta.env.DEV) {
         await new Promise(r => setTimeout(r, 300)); // simulate network
-        setListData(MOCK_LIST_DATA);
+        const filtered = MOCK_LIST_DATA.filter(row => {
+          const rowYear = row.hba1cDate.slice(0, 4);
+          const rowMonth = row.hba1cDate.slice(5, 7);
+          const screening = getScreeningResult(row.hba1c);
+          if (filterYear && rowYear !== filterYear) return false;
+          if (filterMonth && rowMonth !== filterMonth) return false;
+          if (filterDate && row.hba1cDate !== filterDate) return false;
+          if (filterResult && screening.label !== filterResult) return false;
+          return true;
+        });
+        setListData(filtered);
+        setHasSearched(true);
         return;
       }
 
-      // ── PROD: fetch from Supabase ───────────────────────────
-      const { data: hba1cRows, error: e1 } = await supabase
+      // ── PROD: fetch from Supabase with SQL filters ──────────
+      let query = supabase
         .from('patient_lab_results')
         .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)')
         .eq('test_name', 'Hemoglobin A1C')
-        .eq('status', 'completed')
-        .order('test_date', { ascending: false });
+        .eq('status', 'completed');
+
+      if (filterYear) {
+        if (filterMonth) {
+          const yearNum = parseInt(filterYear);
+          const monthNum = parseInt(filterMonth);
+          const lastDay = new Date(yearNum, monthNum, 0).getDate();
+          query = query
+            .gte('test_date', `${filterYear}-${filterMonth}-01`)
+            .lte('test_date', `${filterYear}-${filterMonth}-${String(lastDay).padStart(2, '0')}`);
+        } else {
+          query = query
+            .gte('test_date', `${filterYear}-01-01`)
+            .lte('test_date', `${filterYear}-12-31`);
+        }
+      }
+
+      if (filterDate) {
+        query = query.eq('test_date', filterDate);
+      }
+
+      // Result filter (based on HbA1c value)
+      if (filterResult) {
+        if (filterResult === 'ปกติ') {
+          query = query.lt('result_value', '5.7');
+        } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
+          query = query.gte('result_value', '5.7').lt('result_value', '6.5');
+        } else if (filterResult === 'Diabetes') {
+          query = query.gte('result_value', '6.5');
+        }
+      }
+
+      const { data: hba1cRows, error: e1 } = await query.order('test_date', { ascending: false });
       if (e1) throw e1;
 
       // Fetch all FBS results (latest per patient) for lookup
@@ -404,6 +453,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         };
       });
       setListData(rows);
+      setHasSearched(true);
     } catch (err: any) {
       setListError('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
     } finally {
@@ -416,7 +466,6 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
     supabase.from('doctors').select('*').eq('status', 'active').order('id').then(({ data }) => {
       if (data && data.length > 0) setDoctorsList(data);
     });
-    fetchListData();
   }, []);
 
   // Fetch latest labs when patient is selected
@@ -929,7 +978,15 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         </div>
         <button
           className="btn"
-          onClick={() => { setFilterYear(''); setFilterMonth(''); setFilterDate(''); setFilterResult(''); setPage(1); }}
+          onClick={() => {
+            setFilterYear(currentYearStr);
+            setFilterMonth(currentMonthStr);
+            setFilterDate('');
+            setFilterResult('');
+            setPage(1);
+            setListData([]);
+            setHasSearched(false);
+          }}
           style={{
             width: 'auto',
             padding: '0.375rem 0.875rem',
@@ -956,8 +1013,23 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
           ล้างตัวกรอง
         </button>
-        <button className="btn btn-secondary" onClick={fetchListData} disabled={listLoading} title="โหลดข้อมูลใหม่" style={{ width: 'auto', padding: '0.375rem 0.625rem', fontSize: '0.8rem', height: '36px', alignSelf: 'flex-end', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: listLoading ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.02"/></svg>
+        <button
+          className="btn btn-primary"
+          onClick={fetchListData}
+          disabled={listLoading}
+          style={{
+            width: 'auto',
+            padding: '0.375rem 1rem',
+            fontSize: '0.8rem',
+            height: '36px',
+            alignSelf: 'flex-end',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: listLoading ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          ค้นหา
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginLeft: 'auto', width: '90px' }}>
           <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>แสดงต่อหน้า</label>
@@ -973,16 +1045,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         </div>
       )}
       {(() => {
-        const filteredData = listData.filter(row => {
-          const rowYear = row.hba1cDate.slice(0, 4);
-          const rowMonth = row.hba1cDate.slice(5, 7);
-          const screening = getScreeningResult(row.hba1c);
-          if (filterYear && rowYear !== filterYear) return false;
-          if (filterMonth && rowMonth !== filterMonth) return false;
-          if (filterDate && row.hba1cDate !== filterDate) return false;
-          if (filterResult && screening.label !== filterResult) return false;
-          return true;
-        });
+        const filteredData = listData;
         const totalPages = Math.ceil(filteredData.length / pageSize);
         const pageData = filteredData.slice((page - 1) * pageSize, page * pageSize);
         return (
@@ -1003,7 +1066,13 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {listLoading ? (
+                  {!hasSearched ? (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        🔍 กรุณากดปุ่ม <strong>"ค้นหา"</strong> ด้านบนเพื่อแสดงรายการผลตรวจ
+                      </td>
+                    </tr>
+                  ) : listLoading ? (
                     <tr>
                       <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                         <span style={{ display: 'inline-block', width: 20, height: 20, border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', verticalAlign: 'middle', marginRight: 8 }}></span>
