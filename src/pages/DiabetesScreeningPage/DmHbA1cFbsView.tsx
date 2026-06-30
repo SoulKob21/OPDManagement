@@ -384,6 +384,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           if (filterResult && screening.label !== filterResult) return false;
           return true;
         });
+        filtered.sort((a, b) => a.hba1cDate.localeCompare(b.hba1cDate));
         setTotalCount(filtered.length);
         const sliced = filtered.slice((targetPage - 1) * targetPageSize, targetPage * targetPageSize);
         setListData(sliced);
@@ -432,7 +433,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       const toRange = targetPage * targetPageSize - 1;
 
       const { data: hba1cRows, error: e1, count } = await query
-        .order('test_date', { ascending: false })
+        .order('test_date', { ascending: true })
         .range(fromRange, toRange);
 
       if (e1) throw e1;
@@ -498,20 +499,20 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       let endDate = '';
       
       if (exportMode === 'month') {
-        if (!filterYear || !filterMonth) {
-          throw new Error('กรุณาเลือกปีและเดือนในตัวกรองก่อนสั่งดาวน์โหลดข้อมูลรายเดือน');
+        if (!exportYear || !exportMonth) {
+          throw new Error('กรุณาเลือกปีและเดือนก่อนสั่งดาวน์โหลดข้อมูลรายเดือน');
         }
-        const yearNum = parseInt(filterYear);
-        const monthNum = parseInt(filterMonth);
+        const yearNum = parseInt(exportYear);
+        const monthNum = parseInt(exportMonth);
         const lastDay = new Date(yearNum, monthNum, 0).getDate();
-        startDate = `${filterYear}-${filterMonth}-01`;
-        endDate = `${filterYear}-${filterMonth}-${String(lastDay).padStart(2, '0')}`;
+        startDate = `${exportYear}-${exportMonth}-01`;
+        endDate = `${exportYear}-${exportMonth}-${String(lastDay).padStart(2, '0')}`;
       } else {
-        if (!filterYear) {
-          throw new Error('กรุณาเลือกปีในตัวกรองก่อนสั่งดาวน์โหลดข้อมูลรายปี');
+        if (!exportYear) {
+          throw new Error('กรุณาเลือกปีก่อนสั่งดาวน์โหลดข้อมูลรายปี');
         }
-        startDate = `${filterYear}-01-01`;
-        endDate = `${filterYear}-12-31`;
+        startDate = `${exportYear}-01-01`;
+        endDate = `${exportYear}-12-31`;
       }
       
       // ── DEV: use mock data ──────────────────────────────────
@@ -527,6 +528,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
             return rowYear === filterYear;
           }
         });
+        
+        filteredMock.sort((a, b) => a.hba1cDate.localeCompare(b.hba1cDate));
         
         setExportProgress(50);
         setExportMessage(`ค้นพบข้อมูล Mock ${filteredMock.length} รายการ กำลังจัดเตรียม Excel...`);
@@ -548,8 +551,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานคัดกรองเบาหวาน');
         const fileLabel = exportMode === 'year' 
-          ? `ปี_${parseInt(filterYear) + 543}` 
-          : `เดือน_${THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth}_${parseInt(filterYear) + 543}`;
+          ? `ปี_${parseInt(exportYear) + 543}` 
+          : `เดือน_${THAI_MONTHS.find(m => m.value === exportMonth)?.label ?? exportMonth}_${parseInt(exportYear) + 543}`;
         XLSX.writeFile(workbook, `diabetes_screening_${fileLabel}.xlsx`);
         
         setExportProgress(100);
@@ -611,7 +614,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         }
         
         const { data, error } = await query
-          .order('test_date', { ascending: false })
+          .order('test_date', { ascending: true })
           .range(offset, offset + batchSize - 1);
           
         if (error) throw error;
@@ -677,8 +680,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานคัดกรองเบาหวาน');
       
       const fileLabel = exportMode === 'year' 
-        ? `ปี_${parseInt(filterYear) + 543}` 
-        : `เดือน_${THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth}_${parseInt(filterYear) + 543}`;
+        ? `ปี_${parseInt(exportYear) + 543}` 
+        : `เดือน_${THAI_MONTHS.find(m => m.value === exportMonth)?.label ?? exportMonth}_${parseInt(exportYear) + 543}`;
       XLSX.writeFile(workbook, `diabetes_screening_${fileLabel}.xlsx`);
       
       setExportProgress(100);
