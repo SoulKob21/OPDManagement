@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import type { Patient, Doctor } from '../../types/opd';
 import { MOCK_DOCTORS } from '../../types/opd';
 import { BuddhistDateInput } from '../../components/BuddhistDateInput';
+import * as XLSX from 'xlsx';
 
 interface DmHbA1cFbsViewProps {
   onBack: () => void;
@@ -321,6 +322,14 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
+  // ── Export to Excel states ──────────────────────────────
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportMode, setExportMode] = useState<'month' | 'year'>('month');
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportMessage, setExportMessage] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
     const y = 2024 + i;
@@ -472,6 +481,211 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       setListError('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
     } finally {
       setListLoading(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    setExportProgress(0);
+    setExportSuccess(false);
+    setExportMessage('กำลังเริ่มดึงข้อมูลคัดกรองเบาหวาน...');
+    
+    try {
+      let startDate = '';
+      let endDate = '';
+      
+      if (exportMode === 'month') {
+        if (!filterYear || !filterMonth) {
+          throw new Error('กรุณาเลือกปีและเดือนในตัวกรองก่อนสั่งดาวน์โหลดข้อมูลรายเดือน');
+        }
+        const yearNum = parseInt(filterYear);
+        const monthNum = parseInt(filterMonth);
+        const lastDay = new Date(yearNum, monthNum, 0).getDate();
+        startDate = `${filterYear}-${filterMonth}-01`;
+        endDate = `${filterYear}-${filterMonth}-${String(lastDay).padStart(2, '0')}`;
+      } else {
+        if (!filterYear) {
+          throw new Error('กรุณาเลือกปีในตัวกรองก่อนสั่งดาวน์โหลดข้อมูลรายปี');
+        }
+        startDate = `${filterYear}-01-01`;
+        endDate = `${filterYear}-12-31`;
+      }
+      
+      // ── DEV: use mock data ──────────────────────────────────
+      if (import.meta.env.DEV) {
+        await new Promise(r => setTimeout(r, 600)); // simulate network delay
+        
+        const filteredMock = MOCK_LIST_DATA.filter(row => {
+          const rowYear = row.hba1cDate.slice(0, 4);
+          const rowMonth = row.hba1cDate.slice(5, 7);
+          if (exportMode === 'month') {
+            return rowYear === filterYear && rowMonth === filterMonth;
+          } else {
+            return rowYear === filterYear;
+          }
+        });
+        
+        setExportProgress(50);
+        setExportMessage(`ค้นพบข้อมูล Mock ${filteredMock.length} รายการ กำลังจัดเตรียม Excel...`);
+        await new Promise(r => setTimeout(r, 400));
+        
+        const excelData = filteredMock.map((r, idx) => ({
+          'ลำดับ': idx + 1,
+          'HN': r.hn,
+          'ชื่อ-นามสกุล': r.name,
+          'แพทย์เจ้าของไข้': r.doctor,
+          'HbA1c (%)': r.hba1c !== null ? r.hba1c : '',
+          'วันที่ตรวจ HbA1c': r.hba1cDateDisplay,
+          'FBS (mg/dL)': r.fbs !== null ? r.fbs : '',
+          'วันที่ตรวจ FBS': r.fbsDateDisplay,
+          'ผลการคัดกรอง': getScreeningResult(r.hba1c).label
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานคัดกรองเบาหวาน');
+        const fileLabel = exportMode === 'year' 
+          ? `ปี_${parseInt(filterYear) + 543}` 
+          : `เดือน_${THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth}_${parseInt(filterYear) + 543}`;
+        XLSX.writeFile(workbook, `diabetes_screening_${fileLabel}.xlsx`);
+        
+        setExportProgress(100);
+        setExportSuccess(true);
+        setExportMessage(`ดาวน์โหลดสำเร็จ! พบทั้งหมด ${filteredMock.length} รายการ`);
+        return;
+      }
+      
+      // ── PROD: Supabase ──────────────────────────────────────
+      let countQuery = supabase
+        .from('patient_lab_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('test_name', 'Hemoglobin A1C')
+        .eq('status', 'completed')
+        .gte('test_date', startDate)
+        .lte('test_date', endDate);
+      
+      if (filterResult) {
+        if (filterResult === 'ปกติ') {
+          countQuery = countQuery.lt('result_value', '5.7');
+        } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
+          countQuery = countQuery.gte('result_value', '5.7').lt('result_value', '6.5');
+        } else if (filterResult === 'Diabetes') {
+          countQuery = countQuery.gte('result_value', '6.5');
+        }
+      }
+      
+      const { count, error: countErr } = await countQuery;
+      if (countErr) throw countErr;
+      const total = count ?? 0;
+      
+      if (total === 0) {
+        throw new Error('ไม่พบข้อมูลตามเงื่อนไขที่ระบุ');
+      }
+      
+      let allHbA1c: any[] = [];
+      const batchSize = 1000;
+      for (let offset = 0; offset < total; offset += batchSize) {
+        const progressVal = Math.round((offset / total) * 60); // 0-60%
+        setExportProgress(progressVal);
+        setExportMessage(`กำลังดึงข้อมูล HbA1c... ${offset} จาก ${total} รายการ`);
+        
+        let query = supabase
+          .from('patient_lab_results')
+          .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)')
+          .eq('test_name', 'Hemoglobin A1C')
+          .eq('status', 'completed')
+          .gte('test_date', startDate)
+          .lte('test_date', endDate);
+          
+        if (filterResult) {
+          if (filterResult === 'ปกติ') {
+            query = query.lt('result_value', '5.7');
+          } else if (filterResult === 'Pre-diabetes (กลุ่มเสี่ยง)') {
+            query = query.gte('result_value', '5.7').lt('result_value', '6.5');
+          } else if (filterResult === 'Diabetes') {
+            query = query.gte('result_value', '6.5');
+          }
+        }
+        
+        const { data, error } = await query
+          .order('test_date', { ascending: false })
+          .range(offset, offset + batchSize - 1);
+          
+        if (error) throw error;
+        allHbA1c = [...allHbA1c, ...(data || [])];
+      }
+      
+      setExportProgress(65);
+      setExportMessage(`ดึงประวัติ HbA1c สำเร็จ ${total} รายการ กำลังจัดกลุ่มเพื่อสืบค้นประวัติ FBS...`);
+      
+      const patientIds = Array.from(new Set(allHbA1c.map(r => r.patient_id).filter(Boolean)));
+      let allFbs: any[] = [];
+      const idBatchSize = 400;
+      for (let offset = 0; offset < patientIds.length; offset += idBatchSize) {
+        const progressVal = 65 + Math.round((offset / patientIds.length) * 30); // 65-95%
+        setExportProgress(progressVal);
+        setExportMessage(`กำลังจับคู่ผลตรวจ FBS... (${offset} จาก ${patientIds.length} รายชื่อ)`);
+        
+        const chunkIds = patientIds.slice(offset, offset + idBatchSize);
+        const { data, error } = await supabase
+          .from('patient_lab_results')
+          .select('patient_id, result_value, test_date')
+          .eq('test_name', 'Fasting Blood Sugar')
+          .eq('status', 'completed')
+          .in('patient_id', chunkIds)
+          .order('test_date', { ascending: false });
+          
+        if (error) throw error;
+        allFbs = [...allFbs, ...(data || [])];
+      }
+      
+      setExportProgress(95);
+      setExportMessage('ดึงประวัติแล็บทั้งหมดเสร็จสิ้น กำลังสรุปข้อมูลในรูปแบบ Excel...');
+      
+      const fbsMap = new Map<string, { result_value: string; test_date: string }>();
+      allFbs.forEach(r => {
+        if (!fbsMap.has(r.patient_id)) {
+          fbsMap.set(r.patient_id, r);
+        }
+      });
+      
+      const excelData = allHbA1c.map((r, idx) => {
+        const patient = r.patients;
+        const fbs = fbsMap.get(r.patient_id);
+        const hba1cVal = parseFloat(r.result_value);
+        const fbsVal = fbs ? parseFloat(fbs.result_value) : null;
+        const screening = getScreeningResult(hba1cVal);
+        
+        return {
+          'ลำดับ': idx + 1,
+          'HN': patient?.hn ?? '',
+          'ชื่อ-นามสกุล': `${patient?.title ?? ''}${patient?.first_name ?? ''} ${patient?.last_name ?? ''}`.trim(),
+          'แพทย์เจ้าของไข้': patient?.primary_doctor ?? '',
+          'HbA1c (%)': isNaN(hba1cVal) ? '' : hba1cVal,
+          'วันที่ตรวจ HbA1c': toThaiDate(r.test_date ?? ''),
+          'FBS (mg/dL)': fbsVal === null || isNaN(fbsVal) ? '' : fbsVal,
+          'วันที่ตรวจ FBS': fbs ? toThaiDate(fbs.test_date) : '',
+          'ผลการคัดกรอง': screening.label
+        };
+      });
+      
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'รายงานคัดกรองเบาหวาน');
+      
+      const fileLabel = exportMode === 'year' 
+        ? `ปี_${parseInt(filterYear) + 543}` 
+        : `เดือน_${THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth}_${parseInt(filterYear) + 543}`;
+      XLSX.writeFile(workbook, `diabetes_screening_${fileLabel}.xlsx`);
+      
+      setExportProgress(100);
+      setExportSuccess(true);
+      setExportMessage(`ดาวน์โหลดสำเร็จ! สรุปนำออกแล้วทั้งหมด ${total} รายการ`);
+      
+    } catch (err: any) {
+      setExportMessage(`ดาวน์โหลดล้มเหลว: ${err.message}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -1047,6 +1261,42 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: listLoading ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           ค้นหา
         </button>
+        <button
+          className="btn"
+          onClick={() => {
+            setExportSuccess(false);
+            setExportProgress(0);
+            setExportMessage('');
+            setExporting(false);
+            setShowExportModal(true);
+          }}
+          style={{
+            width: 'auto',
+            padding: '0.375rem 1rem',
+            fontSize: '0.8rem',
+            height: '36px',
+            alignSelf: 'flex-end',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            background: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            fontWeight: 600,
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#059669';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = '#10b981';
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          นำออก Excel
+        </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginLeft: 'auto', width: '90px' }}>
           <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>แสดงต่อหน้า</label>
           <CustomSelect value={String(pageSize)} onChange={val => { const newSize = Number(val); setPageSize(newSize); setPage(1); fetchListData(1, newSize); }} options={pageSizeOptions} />
@@ -1160,6 +1410,163 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           </>
         );
       })()}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface-solid)',
+            borderRadius: 'var(--radius-lg)',
+            width: '450px',
+            maxWidth: '90%',
+            padding: '1.75rem',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-xl), 0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                📊 นำออกรายงานคัดกรองเบาหวาน
+              </h3>
+              <button
+                disabled={exporting}
+                onClick={() => setShowExportModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: 0,
+                  lineHeight: 1
+                }}
+              >&times;</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>เลือกโหมดขอบเขตข้อมูลเพื่อนำออก Excel:</span>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div
+                  onClick={() => !exporting && setExportMode('month')}
+                  style={{
+                    border: exportMode === 'month' ? '2px solid #10b981' : '1.5px solid var(--border-color)',
+                    background: exportMode === 'month' ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.875rem',
+                    cursor: exporting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: exportMode === 'month' ? '#10b981' : 'var(--text-primary)' }}>รายเดือน</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    เฉพาะ {THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth} พ.ศ. {parseInt(filterYear) + 543}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => !exporting && setExportMode('year')}
+                  style={{
+                    border: exportMode === 'year' ? '2px solid #10b981' : '1.5px solid var(--border-color)',
+                    background: exportMode === 'year' ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.875rem',
+                    cursor: exporting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: exportMode === 'year' ? '#10b981' : 'var(--text-primary)' }}>รายปี</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    รวมทั้งปี พ.ศ. {parseInt(filterYear) + 543} (รองรับขนาด &gt;1,000 แถว)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Section */}
+            {(exporting || exportProgress > 0 || exportMessage) && (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1rem',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span style={{ color: exportSuccess ? '#10b981' : 'var(--text-primary)' }}>
+                    {exportSuccess ? '🎉 ดาวน์โหลดสำเร็จ' : exporting ? '⏳ กำลังทำงาน...' : 'ℹ️ รอเริ่มการดาวน์โหลด'}
+                  </span>
+                  <span>{exportProgress}%</span>
+                </div>
+                <div style={{ height: '8px', background: 'var(--border-color)', borderRadius: '9999px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${exportProgress}%`,
+                    height: '100%',
+                    background: exportSuccess ? '#10b981' : 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
+                    borderRadius: '9999px',
+                    transition: 'width 0.2s ease-out'
+                  }}></div>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-word' }}>{exportMessage}</span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <button
+                className="btn btn-secondary"
+                disabled={exporting}
+                onClick={() => setShowExportModal(false)}
+                style={{ width: 'auto', padding: '0.45rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                {exportSuccess ? 'ปิด' : 'ยกเลิก'}
+              </button>
+              {!exportSuccess && (
+                <button
+                  className="btn"
+                  disabled={exporting}
+                  onClick={handleExportExcel}
+                  style={{
+                    width: 'auto',
+                    padding: '0.45rem 1.5rem',
+                    fontSize: '0.85rem',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    fontWeight: 600,
+                    cursor: exporting ? 'not-allowed' : 'pointer',
+                    opacity: exporting ? 0.7 : 1
+                  }}
+                >
+                  {exporting ? 'กำลังส่งคำขอ...' : 'ดาวน์โหลด Excel'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
