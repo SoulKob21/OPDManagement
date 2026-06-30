@@ -319,15 +319,13 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const currentYear = new Date().getFullYear();
-  const yearOptions = [
-    { value: '', label: 'ทั้งหมด' },
-    ...Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
-      const y = 2024 + i;
-      return { value: y.toString(), label: (y + 543).toString() };
-    })
-  ];
+  const yearOptions = Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
+    const y = 2024 + i;
+    return { value: y.toString(), label: (y + 543).toString() };
+  });
 
 
   const monthOptions = [
@@ -358,7 +356,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
     return `${d}/${m}/${parseInt(y) + 543}`;
   };
 
-  const fetchListData = async () => {
+  const fetchListData = async (targetPage: number = page, targetPageSize: number = pageSize) => {
     setListLoading(true); setListError('');
     try {
       // ── DEV: use mock data ──────────────────────────────────
@@ -374,7 +372,9 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           if (filterResult && screening.label !== filterResult) return false;
           return true;
         });
-        setListData(filtered);
+        setTotalCount(filtered.length);
+        const sliced = filtered.slice((targetPage - 1) * targetPageSize, targetPage * targetPageSize);
+        setListData(sliced);
         setHasSearched(true);
         return;
       }
@@ -382,7 +382,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       // ── PROD: fetch from Supabase with SQL filters ──────────
       let query = supabase
         .from('patient_lab_results')
-        .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)')
+        .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)', { count: 'exact' })
         .eq('test_name', 'Hemoglobin A1C')
         .eq('status', 'completed');
 
@@ -416,8 +416,15 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         }
       }
 
-      const { data: hba1cRows, error: e1 } = await query.order('test_date', { ascending: false });
+      const fromRange = (targetPage - 1) * targetPageSize;
+      const toRange = targetPage * targetPageSize - 1;
+
+      const { data: hba1cRows, error: e1, count } = await query
+        .order('test_date', { ascending: false })
+        .range(fromRange, toRange);
+
       if (e1) throw e1;
+      setTotalCount(count ?? 0);
 
       // Fetch all FBS results (latest per patient) for lookup
       const { data: fbsRows, error: e2 } = await supabase
@@ -1018,7 +1025,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         </button>
         <button
           className="btn btn-primary"
-          onClick={fetchListData}
+          onClick={() => fetchListData()}
           disabled={listLoading}
           style={{
             width: 'auto',
@@ -1036,7 +1043,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginLeft: 'auto', width: '90px' }}>
           <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>แสดงต่อหน้า</label>
-          <CustomSelect value={String(pageSize)} onChange={val => { setPageSize(Number(val)); setPage(1); }} options={pageSizeOptions} />
+          <CustomSelect value={String(pageSize)} onChange={val => { const newSize = Number(val); setPageSize(newSize); setPage(1); fetchListData(1, newSize); }} options={pageSizeOptions} />
         </div>
       </div>
 
@@ -1044,13 +1051,12 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       {listError && (
         <div style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 'var(--radius-md)', color: '#dc2626', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>⚠️ {listError}</span>
-          <button className="btn btn-secondary" onClick={fetchListData} style={{ width: 'auto', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>ลองใหม่</button>
+          <button className="btn btn-secondary" onClick={() => fetchListData()} style={{ width: 'auto', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>ลองใหม่</button>
         </div>
       )}
       {(() => {
-        const filteredData = listData;
-        const totalPages = Math.ceil(filteredData.length / pageSize);
-        const pageData = filteredData.slice((page - 1) * pageSize, page * pageSize);
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const pageData = listData;
         return (
           <>
             <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
@@ -1125,10 +1131,10 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.8125rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>
-                {filteredData.length === 0 ? 'ไม่พบข้อมูล' : `แสดง ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredData.length)} จาก ${filteredData.length} รายการ`}
+                {totalCount === 0 ? 'ไม่พบข้อมูล' : `แสดง ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalCount)} จาก ${totalCount} รายการ`}
               </span>
               <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-                <button className="btn btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>‹ ก่อนหน้า</button>
+                <button className="btn btn-secondary" onClick={() => { const p = Math.max(1, page - 1); setPage(p); fetchListData(p); }} disabled={page === 1} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>‹ ก่อนหน้า</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(p => totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1)
                   .reduce<(number | string)[]>((acc, p, i, arr) => {
@@ -1139,10 +1145,10 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                   .map((p) =>
                     typeof p === 'string'
                       ? <span key={p} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>…</span>
-                      : <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPage(p as number)} style={{ width: 32, padding: '0.35rem 0', fontSize: '0.8rem', minWidth: 32 }}>{p}</button>
+                      : <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { const targetP = p as number; setPage(targetP); fetchListData(targetP); }} style={{ width: 32, padding: '0.35rem 0', fontSize: '0.8rem', minWidth: 32 }}>{p}</button>
                   )
                 }
-                <button className="btn btn-secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>ถัดไป ›</button>
+                <button className="btn btn-secondary" onClick={() => { const p = Math.min(totalPages, page + 1); setPage(p); fetchListData(p); }} disabled={page === totalPages || totalPages === 0} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>ถัดไป ›</button>
               </div>
             </div>
           </>
