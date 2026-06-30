@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Patient, Doctor } from '../../types/opd';
 import { MOCK_DOCTORS } from '../../types/opd';
@@ -8,31 +8,83 @@ interface DmHbA1cFbsViewProps {
   onBack: () => void;
 }
 
-// ── Mock list data (20 rows) ──────────────────────────────────
-const MOCK_DATA = [
-  { id: 1,  hn: 'HN-00101', name: 'นายสมชาย ใจดี',          doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '15/01/2568', hba1c: 6.8,  fbs: 132, result: 'เสี่ยงสูง',      resultColor: '#f59e0b' },
-  { id: 2,  hn: 'HN-00102', name: 'นางสาวสมหญิง รักสุข',    doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '15/01/2568', hba1c: 5.4,  fbs: 95,  result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 3,  hn: 'HN-00103', name: 'นายวิชัย สร้างสรรค์',    doctor: 'พญ.วิไล ใจงาม',         date: '16/01/2568', hba1c: 8.2,  fbs: 185, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
-  { id: 4,  hn: 'HN-00104', name: 'นางมาลี ดอกไม้',         doctor: 'พญ.วิไล ใจงาม',         date: '16/01/2568', hba1c: 6.0,  fbs: 110, result: 'เสี่ยงปานกลาง', resultColor: '#f59e0b' },
-  { id: 5,  hn: 'HN-00105', name: 'นายประเสริฐ มั่นคง',     doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '17/01/2568', hba1c: 5.2,  fbs: 88,  result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 6,  hn: 'HN-00106', name: 'นางสาวพิมพ์ใจ งามตา',   doctor: 'นพ.ชาญชัย วิทยา',      date: '17/01/2568', hba1c: 7.5,  fbs: 156, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
-  { id: 7,  hn: 'HN-00107', name: 'นายอนุชา พัฒนา',         doctor: 'นพ.ชาญชัย วิทยา',      date: '18/01/2568', hba1c: 5.8,  fbs: 102, result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 8,  hn: 'HN-00108', name: 'นางจันทร์ สว่าง',        doctor: 'พญ.วิไล ใจงาม',         date: '18/01/2568', hba1c: 6.5,  fbs: 128, result: 'เสี่ยงสูง',      resultColor: '#f59e0b' },
-  { id: 9,  hn: 'HN-00109', name: 'นายธนกร ศรีสวัสดิ์',     doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '19/01/2568', hba1c: 9.1,  fbs: 210, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
-  { id: 10, hn: 'HN-00110', name: 'นางสาวรัตนา แก้วประเสริฐ', doctor: 'นพ.ชาญชัย วิทยา',  date: '19/01/2568', hba1c: 5.6,  fbs: 98,  result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 11, hn: 'HN-00111', name: 'นายสุรชัย ดีงาม',         doctor: 'พญ.วิไล ใจงาม',         date: '20/01/2568', hba1c: 7.0,  fbs: 140, result: 'เสี่ยงสูง',      resultColor: '#f59e0b' },
-  { id: 12, hn: 'HN-00112', name: 'นางลำพูน สุขสมบัติ',     doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '20/01/2568', hba1c: 6.2,  fbs: 115, result: 'เสี่ยงปานกลาง', resultColor: '#f59e0b' },
-  { id: 13, hn: 'HN-00113', name: 'นายกิตติ วงษ์สกุล',      doctor: 'นพ.ชาญชัย วิทยา',      date: '21/01/2568', hba1c: 5.0,  fbs: 82,  result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 14, hn: 'HN-00114', name: 'นางสาวอรทัย มีสุข',       doctor: 'พญ.วิไล ใจงาม',         date: '21/01/2568', hba1c: 8.8,  fbs: 195, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
-  { id: 15, hn: 'HN-00115', name: 'นายพงษ์ศักดิ์ รุ่งเรือง', doctor: 'นพ.สมศักดิ์ รักษาดี', date: '22/01/2568', hba1c: 6.4,  fbs: 120, result: 'เสี่ยงปานกลาง', resultColor: '#f59e0b' },
-  { id: 16, hn: 'HN-00116', name: 'นางวรรณี ชื่นชม',         doctor: 'นพ.ชาญชัย วิทยา',      date: '22/01/2568', hba1c: 5.3,  fbs: 90,  result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 17, hn: 'HN-00117', name: 'นายเอกชัย ทองดี',         doctor: 'พญ.วิไล ใจงาม',         date: '23/01/2568', hba1c: 7.8,  fbs: 168, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
-  { id: 18, hn: 'HN-00118', name: 'นางสาวณัฐมล สมบูรณ์',    doctor: 'นพ.สมศักดิ์ รักษาดี',  date: '23/01/2568', hba1c: 6.1,  fbs: 108, result: 'เสี่ยงปานกลาง', resultColor: '#f59e0b' },
-  { id: 19, hn: 'HN-00119', name: 'นายธีระ แสงสว่าง',        doctor: 'นพ.ชาญชัย วิทยา',      date: '24/01/2568', hba1c: 5.7,  fbs: 100, result: 'ปกติ',           resultColor: '#10b981' },
-  { id: 20, hn: 'HN-00120', name: 'นางปราณี ใจสะอาด',        doctor: 'พญ.วิไล ใจงาม',         date: '24/01/2568', hba1c: 10.2, fbs: 248, result: 'DM ยืนยัน',      resultColor: '#ef4444' },
+// ── Screening result logic (อิงตาม HbA1c; ถ้าไม่มี ให้ "-") ──
+const getScreeningResult = (hba1c: number | null): { label: string; color: string; bg: string } => {
+  if (hba1c === null) return { label: '-', color: '#6b7280', bg: '#f3f4f6' };
+  if (hba1c >= 6.5) return { label: 'Diabetes', color: '#fff', bg: '#ef4444' };
+  if (hba1c >= 5.7) return { label: 'Pre-diabetes (กลุ่มเสี่ยง)', color: '#fff', bg: '#f59e0b' };
+  return { label: 'ปกติ', color: '#fff', bg: '#10b981' };
+};
+
+const getHba1cColor = (val: number | null) => {
+  if (val === null) return 'var(--text-muted)';
+  if (val >= 6.5) return '#ef4444';
+  if (val >= 5.7) return '#f59e0b';
+  return '#10b981';
+};
+
+const getFbsColor = (val: number | null) => {
+  if (val === null) return 'var(--text-muted)';
+  if (val >= 126) return '#ef4444';
+  if (val >= 101) return '#f59e0b';
+  return '#10b981';
+};
+
+// ── List row (from Supabase) ──────────────────────────────────
+interface ListRow {
+  patientId: string;
+  hn: string;
+  name: string;
+  doctor: string;
+  hba1cDate: string;        // YYYY-MM-DD (raw for filtering)
+  hba1cDateDisplay: string; // DD/MM/พ.ศ.
+  hba1c: number | null;
+  fbsDate: string;
+  fbsDateDisplay: string;
+  fbs: number | null;
+}
+// ── Mock data for local development ─────────────────────────
+const MOCK_LIST_DATA: ListRow[] = [
+  { patientId: 'mock-01', hn: 'HN-00101', name: 'นายสมชาย ใจดี',            doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-01-15', hba1cDateDisplay: '15/01/2568', hba1c: 6.8,  fbsDate: '2025-01-15', fbsDateDisplay: '15/01/2568', fbs: 132 },
+  { patientId: 'mock-02', hn: 'HN-00102', name: 'นางสาวสมหญิง รักสุข',      doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-01-15', hba1cDateDisplay: '15/01/2568', hba1c: 5.4,  fbsDate: '2025-01-15', fbsDateDisplay: '15/01/2568', fbs: 95 },
+  { patientId: 'mock-03', hn: 'HN-00103', name: 'นายวิชัย สร้างสรรค์',      doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-01-16', hba1cDateDisplay: '16/01/2568', hba1c: 8.2,  fbsDate: '2025-01-16', fbsDateDisplay: '16/01/2568', fbs: 185 },
+  { patientId: 'mock-04', hn: 'HN-00104', name: 'นางมาลี ดอกไม้',           doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-01-16', hba1cDateDisplay: '16/01/2568', hba1c: 6.0,  fbsDate: '2025-01-16', fbsDateDisplay: '16/01/2568', fbs: 110 },
+  { patientId: 'mock-05', hn: 'HN-00105', name: 'นายประเสริฐ มั่นคง',       doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-01-17', hba1cDateDisplay: '17/01/2568', hba1c: 5.2,  fbsDate: '2025-01-17', fbsDateDisplay: '17/01/2568', fbs: 88 },
+  { patientId: 'mock-06', hn: 'HN-00106', name: 'นางสาวพิมพ์ใจ งามตา',     doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-01-17', hba1cDateDisplay: '17/01/2568', hba1c: 7.5,  fbsDate: '2025-01-17', fbsDateDisplay: '17/01/2568', fbs: 156 },
+  { patientId: 'mock-07', hn: 'HN-00107', name: 'นายอนุชา พัฒนา',           doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-01-18', hba1cDateDisplay: '18/01/2568', hba1c: 5.8,  fbsDate: '2025-01-18', fbsDateDisplay: '18/01/2568', fbs: 102 },
+  { patientId: 'mock-08', hn: 'HN-00108', name: 'นางจันทร์ สว่าง',          doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-01-18', hba1cDateDisplay: '18/01/2568', hba1c: 6.5,  fbsDate: '2025-01-18', fbsDateDisplay: '18/01/2568', fbs: 128 },
+  { patientId: 'mock-09', hn: 'HN-00109', name: 'นายธนกร ศรีสวัสดิ์',       doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-01-19', hba1cDateDisplay: '19/01/2568', hba1c: 9.1,  fbsDate: '2025-01-19', fbsDateDisplay: '19/01/2568', fbs: 210 },
+  { patientId: 'mock-10', hn: 'HN-00110', name: 'นางสาวรัตนา แก้วประเสริฐ', doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-01-19', hba1cDateDisplay: '19/01/2568', hba1c: 5.6,  fbsDate: '2025-01-19', fbsDateDisplay: '19/01/2568', fbs: 98 },
+  { patientId: 'mock-11', hn: 'HN-00111', name: 'นายสุรชัย ดีงาม',           doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-02-20', hba1cDateDisplay: '20/02/2568', hba1c: 7.0,  fbsDate: '2025-02-20', fbsDateDisplay: '20/02/2568', fbs: 140 },
+  { patientId: 'mock-12', hn: 'HN-00112', name: 'นางลำพูน สุขสมบัติ',       doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-02-20', hba1cDateDisplay: '20/02/2568', hba1c: 6.2,  fbsDate: '2025-02-20', fbsDateDisplay: '20/02/2568', fbs: 115 },
+  { patientId: 'mock-13', hn: 'HN-00113', name: 'นายกิตติ วงษ์สกุล',        doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-02-21', hba1cDateDisplay: '21/02/2568', hba1c: 5.0,  fbsDate: '2025-02-21', fbsDateDisplay: '21/02/2568', fbs: 82 },
+  { patientId: 'mock-14', hn: 'HN-00114', name: 'นางสาวอรทัย มีสุข',         doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-02-21', hba1cDateDisplay: '21/02/2568', hba1c: 8.8,  fbsDate: '2025-02-21', fbsDateDisplay: '21/02/2568', fbs: 195 },
+  { patientId: 'mock-15', hn: 'HN-00115', name: 'นายพงษ์ศักดิ์ รุ่งเรือง',  doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-02-22', hba1cDateDisplay: '22/02/2568', hba1c: 6.4,  fbsDate: '2025-02-22', fbsDateDisplay: '22/02/2568', fbs: 120 },
+  { patientId: 'mock-16', hn: 'HN-00116', name: 'นางวรรณี ชื่นชม',           doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-03-22', hba1cDateDisplay: '22/03/2568', hba1c: 5.3,  fbsDate: '2025-03-22', fbsDateDisplay: '22/03/2568', fbs: 90 },
+  { patientId: 'mock-17', hn: 'HN-00117', name: 'นายเอกชัย ทองดี',           doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-03-23', hba1cDateDisplay: '23/03/2568', hba1c: 7.8,  fbsDate: '2025-03-23', fbsDateDisplay: '23/03/2568', fbs: 168 },
+  { patientId: 'mock-18', hn: 'HN-00118', name: 'นางสาวณัฐมล สมบูรณ์',      doctor: 'นพ.สมศักดิ์ รักษาดี',  hba1cDate: '2025-03-23', hba1cDateDisplay: '23/03/2568', hba1c: null, fbsDate: '2025-03-23', fbsDateDisplay: '23/03/2568', fbs: 108 },
+  { patientId: 'mock-19', hn: 'HN-00119', name: 'นายธีระ แสงสว่าง',          doctor: 'นพ.ชาญชัย วิทยา',      hba1cDate: '2025-03-24', hba1cDateDisplay: '24/03/2568', hba1c: 5.7,  fbsDate: '2025-03-24', fbsDateDisplay: '24/03/2568', fbs: 100 },
+  { patientId: 'mock-20', hn: 'HN-00120', name: 'นางปราณี ใจสะอาด',          doctor: 'พญ.วิไล ใจงาม',         hba1cDate: '2025-03-24', hba1cDateDisplay: '24/03/2568', hba1c: 10.2, fbsDate: '2025-03-24', fbsDateDisplay: '24/03/2568', fbs: 248 },
+];
+const THAI_MONTHS = [
+  { value: '01', label: 'มกราคม' }, { value: '02', label: 'กุมภาพันธ์' },
+  { value: '03', label: 'มีนาคม' }, { value: '04', label: 'เมษายน' },
+  { value: '05', label: 'พฤษภาคม' }, { value: '06', label: 'มิถุนายน' },
+  { value: '07', label: 'กรกฎาคม' }, { value: '08', label: 'สิงหาคม' },
+  { value: '09', label: 'กันยายน' }, { value: '10', label: 'ตุลาคม' },
+  { value: '11', label: 'พฤศจิกายน' }, { value: '12', label: 'ธันวาคม' },
 ];
 
-const PAGE_SIZE = 10;
+const thStyle: React.CSSProperties = {
+  padding: '0.75rem 0.875rem',
+  textAlign: 'left',
+  fontWeight: 700,
+  fontSize: '0.75rem',
+  whiteSpace: 'nowrap',
+  color: '#fff',
+  borderBottom: '2px solid rgba(255,255,255,0.15)',
+  letterSpacing: '0.02em',
+};
 const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
 interface PatientFormState {
@@ -80,9 +132,150 @@ const genderFromTitle = (title: string) => {
   return 'อื่นๆ';
 };
 
+interface CustomSelectProps {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, placeholder = 'ทั้งหมด' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isOpen]);
+
+  const selectedOption = options.find(o => String(o.value) === String(value));
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          height: '36px',
+          padding: '0.375rem 2rem 0.375rem 0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          border: '1.5px solid ' + (isOpen ? 'var(--border-focus)' : 'var(--border-color)'),
+          background: 'var(--bg-elevated)',
+          color: 'var(--text-primary)',
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          textAlign: 'left',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          outline: 'none',
+          boxShadow: isOpen ? '0 0 0 3px var(--primary-glow)' : 'none',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--text-muted)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.15s ease',
+            position: 'absolute',
+            right: '0.75rem',
+          }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            zIndex: 150,
+            width: '100%',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            background: 'var(--bg-surface-solid)',
+            border: '1.5px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '4px',
+          }}
+        >
+          {options.map(opt => {
+            const isSelected = String(opt.value) === String(value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(String(opt.value));
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: isSelected ? 'var(--primary)' : 'transparent',
+                  color: isSelected ? 'white' : 'var(--text-primary)',
+                  fontSize: '0.8125rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'background 0.1s',
+                  display: 'block',
+                }}
+                onMouseEnter={e => {
+                  if (!isSelected) e.currentTarget.style.background = 'var(--bg-primary)';
+                }}
+                onMouseLeave={e => {
+                  if (!isSelected) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [showForm, setShowForm] = useState(false);
+
+  // ── Filter states ──────────────────────────────────────────
+  const [filterYear, setFilterYear] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterResult, setFilterResult] = useState('');
+
 
   // ── Patient search states ──────────────────────────────────
   const [hnQuery, setHnQuery] = useState('');
@@ -117,14 +310,113 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [saveSuccess, setSaveSuccess] = useState('');
   const [saveError, setSaveError] = useState('');
 
-  const totalPages = Math.ceil(MOCK_DATA.length / PAGE_SIZE);
-  const pageData = MOCK_DATA.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // ── List data from Supabase ─────────────────────────────
+  const [listData, setListData] = useState<ListRow[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState('');
+
+  const yearOptions = [
+    { value: '', label: 'ทั้งหมด' },
+    ...Array.from(new Set(listData.map(r => r.hba1cDate.slice(0, 4))))
+      .sort()
+      .map(y => ({ value: y, label: `${parseInt(y) + 543} (${y})` }))
+  ];
+
+  const monthOptions = [
+    { value: '', label: 'ทั้งหมด' },
+    ...THAI_MONTHS.map(m => ({ value: m.value, label: m.label }))
+  ];
+
+  const resultOptions = [
+    { value: '', label: 'ทั้งหมด' },
+    { value: 'ปกติ', label: 'ปกติ' },
+    { value: 'Pre-diabetes (กลุ่มเสี่ยง)', label: 'Pre-diabetes (กลุ่มเสี่ยง)' },
+    { value: 'Diabetes', label: 'Diabetes' },
+    { value: '-', label: 'ไม่มีผล HbA1c' }
+  ];
+
+  const pageSizeOptions = [
+    { value: '10', label: '10' },
+    { value: '20', label: '20' },
+    { value: '50', label: '50' }
+  ];
+
+
+
+  // Helper: convert YYYY-MM-DD to DD/MM/พ.ศ.
+  const toThaiDate = (iso: string) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${parseInt(y) + 543}`;
+  };
+
+  const fetchListData = async () => {
+    setListLoading(true); setListError('');
+    try {
+      // ── DEV: use mock data ──────────────────────────────────
+      if (import.meta.env.DEV) {
+        await new Promise(r => setTimeout(r, 300)); // simulate network
+        setListData(MOCK_LIST_DATA);
+        return;
+      }
+
+      // ── PROD: fetch from Supabase ───────────────────────────
+      const { data: hba1cRows, error: e1 } = await supabase
+        .from('patient_lab_results')
+        .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)')
+        .eq('test_name', 'Hemoglobin A1C')
+        .eq('status', 'completed')
+        .order('test_date', { ascending: false });
+      if (e1) throw e1;
+
+      // Fetch all FBS results (latest per patient) for lookup
+      const { data: fbsRows, error: e2 } = await supabase
+        .from('patient_lab_results')
+        .select('patient_id, result_value, test_date')
+        .eq('test_name', 'Fasting Blood Sugar')
+        .eq('status', 'completed')
+        .order('test_date', { ascending: false });
+      if (e2) throw e2;
+
+      // Build FBS map: patient_id -> latest FBS row
+      const fbsMap = new Map<string, { result_value: string; test_date: string }>();
+      (fbsRows || []).forEach(r => {
+        if (!fbsMap.has(r.patient_id)) fbsMap.set(r.patient_id, r);
+      });
+
+      // Build list rows from HbA1c rows (one row per HbA1c entry)
+      const rows: ListRow[] = (hba1cRows || []).map(r => {
+        const patient = (r as any).patients as any;
+        const fbs = fbsMap.get(r.patient_id);
+        const hba1cVal = parseFloat(r.result_value);
+        const fbsVal = fbs ? parseFloat(fbs.result_value) : null;
+        return {
+          patientId: r.patient_id,
+          hn: patient?.hn ?? '',
+          name: `${patient?.title ?? ''}${patient?.first_name ?? ''} ${patient?.last_name ?? ''}`.trim(),
+          doctor: patient?.primary_doctor ?? '',
+          hba1cDate: r.test_date ?? '',
+          hba1cDateDisplay: toThaiDate(r.test_date ?? ''),
+          hba1c: isNaN(hba1cVal) ? null : hba1cVal,
+          fbsDate: fbs?.test_date ?? '',
+          fbsDateDisplay: fbs ? toThaiDate(fbs.test_date) : '',
+          fbs: fbsVal === null || isNaN(fbsVal as number) ? null : fbsVal,
+        };
+      });
+      setListData(rows);
+    } catch (err: any) {
+      setListError('โหลดข้อมูลไม่สำเร็จ: ' + err.message);
+    } finally {
+      setListLoading(false);
+    }
+  };
 
   // Fetch doctors from DB
   useEffect(() => {
     supabase.from('doctors').select('*').eq('status', 'active').order('id').then(({ data }) => {
       if (data && data.length > 0) setDoctorsList(data);
     });
+    fetchListData();
   }, []);
 
   // Fetch latest labs when patient is selected
@@ -278,7 +570,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
 
       setSaveSuccess(`บันทึกสำเร็จ ${inserts.length} รายการ — วันนัดล่าสุด: ${lastAppointmentDate}`);
       setHba1cValue(''); setFbsValue('');
-      // Re-fetch latest labs
+      // Re-fetch latest labs for display
       if (patientId) {
         const [h, f] = await Promise.all([
           supabase.from('patient_lab_results').select('result_value,test_date').eq('patient_id', patientId).eq('test_name', 'Hemoglobin A1C').order('test_date', { ascending: false }).limit(1).maybeSingle(),
@@ -287,6 +579,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         setLatestHba1c(h.data ?? null);
         setLatestFbs(f.data ?? null);
       }
+      // Refresh the list view
+      fetchListData();
     } catch (err: any) {
       setSaveError('บันทึกไม่สำเร็จ: ' + err.message);
     } finally { setSaving(false); }
@@ -583,50 +877,205 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             เพิ่มข้อมูลการตรวจ
           </button>
-          <button className="btn btn-secondary" onClick={onBack} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>← กลับหน้าสรุป</button>
         </div>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
-          <thead>
-            <tr style={{ background: 'var(--bg-secondary)' }}>
-              {['#', 'HN', 'ชื่อ-นามสกุล', 'แพทย์', 'วันที่ตรวจ', 'HbA1c (%)', 'FBS (mg/dL)', 'ผลคัดกรอง'].map(h => (
-                <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid var(--border-color)', whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageData.map(row => (
-              <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{row.id}</td>
-                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 600 }}>{row.hn}</td>
-                <td style={{ padding: '0.75rem 1rem' }}>{row.name}</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', fontSize: '0.775rem' }}>{row.doctor}</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{row.date}</td>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: row.hba1c >= 7 ? '#ef4444' : row.hba1c >= 6.5 ? '#f59e0b' : '#10b981' }}>{row.hba1c}</td>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: row.fbs > 125 ? '#ef4444' : row.fbs > 100 ? '#f59e0b' : '#10b981' }}>{row.fbs}</td>
-                <td style={{ padding: '0.75rem 1rem' }}>
-                  <span style={{ display: 'inline-block', padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, color: '#fff', background: row.resultColor }}>{row.result}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.8125rem' }}>
-        <span style={{ color: 'var(--text-secondary)' }}>แสดง {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, MOCK_DATA.length)} จาก {MOCK_DATA.length} รายการ</span>
-        <div style={{ display: 'flex', gap: '0.375rem' }}>
-          <button className="btn btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>‹ ก่อนหน้า</button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-            <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPage(p)} style={{ width: 32, padding: '0.35rem 0', fontSize: '0.8rem', minWidth: 32 }}>{p}</button>
-          ))}
-          <button className="btn btn-secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>ถัดไป ›</button>
+      {/* Criteria Legend */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(245,158,11,0.06) 100%)', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem' }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }}></span>
+            เกณฑ์ HbA1c
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '1rem' }}>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#10b981', marginRight: 8, verticalAlign: 'middle' }}></span>{'<= 5.6%'} — ปกติ</span>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#f59e0b', marginRight: 8, verticalAlign: 'middle' }}></span>{'5.7 – 6.4%'} — กลุ่มเสี่ยง (Pre-diabetes)</span>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#ef4444', marginRight: 8, verticalAlign: 'middle' }}></span>{'>= 6.5%'} — Diabetes</span>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: '#b45309', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem' }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }}></span>
+            เกณฑ์ FBS
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '1rem' }}>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#10b981', marginRight: 8, verticalAlign: 'middle' }}></span>{'70 – 100 mg%'} — ปกติ</span>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#f59e0b', marginRight: 8, verticalAlign: 'middle' }}></span>{'101 – 125 mg%'} — Pre-diabetes</span>
+            <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: '#ef4444', marginRight: 8, verticalAlign: 'middle' }}></span>{'>= 126 mg%'} — Diabetes</span>
+          </div>
+        </div>
+        <div style={{ gridColumn: '1/-1', marginTop: '0.375rem', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8125rem' }}>
+          ★ ผลการคัดกรองอิงตามผล HbA1c เป็นหลัก — หากไม่มีผล HbA1c จะแสดงเป็น "-"
         </div>
       </div>
+
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'flex-end', marginBottom: '1rem', padding: '0.875rem 1rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>ปี (ค.ศ.)</label>
+          <CustomSelect value={filterYear} onChange={val => { setFilterYear(val); setPage(1); }} options={yearOptions} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>เดือน</label>
+          <CustomSelect value={filterMonth} onChange={val => { setFilterMonth(val); setPage(1); }} options={monthOptions} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>วันที่ตรวจ HbA1c (พ.ศ.)</label>
+          <BuddhistDateInput value={filterDate} onChange={val => { setFilterDate(val); setPage(1); }} placeholder="ทั้งหมด (พ.ศ.)" style={{ height: '36px', minHeight: '36px' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '180px' }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>ผลการคัดกรอง</label>
+          <CustomSelect value={filterResult} onChange={val => { setFilterResult(val); setPage(1); }} options={resultOptions} />
+        </div>
+        <button
+          className="btn"
+          onClick={() => { setFilterYear(''); setFilterMonth(''); setFilterDate(''); setFilterResult(''); setPage(1); }}
+          style={{
+            width: 'auto',
+            padding: '0.375rem 0.875rem',
+            fontSize: '0.8rem',
+            height: '36px',
+            alignSelf: 'flex-end',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            color: 'var(--danger-foreground)',
+            background: 'var(--danger-bg)',
+            border: '1.5px solid var(--danger-border)',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#fecdd3';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'var(--danger-bg)';
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          ล้างตัวกรอง
+        </button>
+        <button className="btn btn-secondary" onClick={fetchListData} disabled={listLoading} title="โหลดข้อมูลใหม่" style={{ width: 'auto', padding: '0.375rem 0.625rem', fontSize: '0.8rem', height: '36px', alignSelf: 'flex-end', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: listLoading ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.02"/></svg>
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginLeft: 'auto', width: '90px' }}>
+          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.03em' }}>แสดงต่อหน้า</label>
+          <CustomSelect value={String(pageSize)} onChange={val => { setPageSize(Number(val)); setPage(1); }} options={pageSizeOptions} />
+        </div>
+      </div>
+
+      {/* Table */}
+      {listError && (
+        <div style={{ marginBottom: '0.75rem', padding: '0.75rem 1rem', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 'var(--radius-md)', color: '#dc2626', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>⚠️ {listError}</span>
+          <button className="btn btn-secondary" onClick={fetchListData} style={{ width: 'auto', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>ลองใหม่</button>
+        </div>
+      )}
+      {(() => {
+        const filteredData = listData.filter(row => {
+          const rowYear = row.hba1cDate.slice(0, 4);
+          const rowMonth = row.hba1cDate.slice(5, 7);
+          const screening = getScreeningResult(row.hba1c);
+          if (filterYear && rowYear !== filterYear) return false;
+          if (filterMonth && rowMonth !== filterMonth) return false;
+          if (filterDate && row.hba1cDate !== filterDate) return false;
+          if (filterResult && screening.label !== filterResult) return false;
+          return true;
+        });
+        const totalPages = Math.ceil(filteredData.length / pageSize);
+        const pageData = filteredData.slice((page - 1) * pageSize, page * pageSize);
+        return (
+          <>
+            <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                <thead>
+                  <tr style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%)' }}>
+                    <th style={{ ...thStyle, width: 52, textAlign: 'center' }}>ลำดับ</th>
+                    <th style={thStyle}>HN</th>
+                    <th style={thStyle}>ชื่อ-สกุล</th>
+                    <th style={thStyle}>แพทย์เจ้าของไข้</th>
+                    <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>HbA1c (%)</th>
+                    <th style={thStyle}>วันที่ตรวจ</th>
+                    <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>FBS (mg/dl)</th>
+                    <th style={thStyle}>วันที่ตรวจ</th>
+                    <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>ผลการคัดกรอง</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listLoading ? (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        <span style={{ display: 'inline-block', width: 20, height: 20, border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', verticalAlign: 'middle', marginRight: 8 }}></span>
+                        กำลังโหลดข้อมูล...
+                      </td>
+                    </tr>
+                  ) : pageData.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา
+                      </td>
+                    </tr>
+                  ) : pageData.map((row, idx) => {
+                    const screening = getScreeningResult(row.hba1c);
+                    const rowNum = (page - 1) * pageSize + idx + 1;
+                    return (
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td style={{ padding: '0.75rem 0.875rem', color: 'var(--text-muted)', textAlign: 'center', fontWeight: 500 }}>{rowNum}</td>
+                        <td style={{ padding: '0.75rem 0.875rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>{row.hn}</td>
+                        <td style={{ padding: '0.75rem 0.875rem', fontWeight: 500 }}>{row.name}</td>
+                        <td style={{ padding: '0.75rem 0.875rem', color: 'var(--text-secondary)', fontSize: '0.775rem' }}>{row.doctor}</td>
+                        <td style={{ padding: '0.75rem 0.875rem', fontWeight: 700, color: getHba1cColor(row.hba1c), borderLeft: '1px solid var(--border-color)' }}>
+                          {row.hba1c !== null ? `${row.hba1c}%` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.875rem', color: 'var(--text-secondary)', fontSize: '0.775rem' }}>
+                          {row.hba1c !== null ? row.hba1cDateDisplay : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.875rem', fontWeight: 700, color: getFbsColor(row.fbs), borderLeft: '1px solid var(--border-color)' }}>
+                          {row.fbs !== null ? row.fbs : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.875rem', color: 'var(--text-secondary)', fontSize: '0.775rem' }}>
+                          {row.fbs !== null ? row.fbsDateDisplay : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.875rem', borderLeft: '1px solid var(--border-color)' }}>
+                          <span style={{ display: 'inline-block', padding: '0.2rem 0.7rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 700, color: screening.color, background: screening.bg, whiteSpace: 'nowrap' }}>
+                            {screening.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.8125rem' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {filteredData.length === 0 ? 'ไม่พบข้อมูล' : `แสดง ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredData.length)} จาก ${filteredData.length} รายการ`}
+              </span>
+              <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                <button className="btn btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>‹ ก่อนหน้า</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .reduce<(number | string)[]>((acc, p, i, arr) => {
+                    if (i > 0 && typeof arr[i - 1] === 'number' && (p as number) - (arr[i - 1] as number) > 1) acc.push('ellipsis-' + i);
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p) =>
+                    typeof p === 'string'
+                      ? <span key={p} style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>…</span>
+                      : <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setPage(p as number)} style={{ width: 32, padding: '0.35rem 0', fontSize: '0.8rem', minWidth: 32 }}>{p}</button>
+                  )
+                }
+                <button className="btn btn-secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>ถัดไป ›</button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 };

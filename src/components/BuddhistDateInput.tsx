@@ -7,6 +7,7 @@ interface BuddhistDateInputProps {
   min?: string;
   placeholder?: string;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 const THAI_MONTHS = [
@@ -188,6 +189,7 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
   min,
   placeholder = 'เลือกวันที่ (พ.ศ.)',
   disabled = false,
+  style,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [typedValue, setTypedValue] = useState('');
@@ -199,6 +201,7 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     if (value) return parseInt(value.split('-')[1], 10) - 1;
     return new Date().getMonth();
   });
+  const [viewMode, setViewMode] = useState<'days' | 'months' | 'years'>('days');
   const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -225,6 +228,13 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
       setTypedValue('');
     }
   }, [value]);
+
+  // Reset viewMode when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setViewMode('days');
+    }
+  }, [isOpen]);
 
   // Close on outside click
   useEffect(() => {
@@ -254,23 +264,35 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     setIsOpen(false);
   };
 
-  const handlePrevMonth = (e: React.MouseEvent) => {
+  const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (viewMonth === 0) {
-      setViewMonth(11);
+    if (viewMode === 'days') {
+      if (viewMonth === 0) {
+        setViewMonth(11);
+        setViewYear(viewYear - 1);
+      } else {
+        setViewMonth(viewMonth - 1);
+      }
+    } else if (viewMode === 'months') {
       setViewYear(viewYear - 1);
-    } else {
-      setViewMonth(viewMonth - 1);
+    } else if (viewMode === 'years') {
+      setViewYear(viewYear - 12);
     }
   };
 
-  const handleNextMonth = (e: React.MouseEvent) => {
+  const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (viewMonth === 11) {
-      setViewMonth(0);
+    if (viewMode === 'days') {
+      if (viewMonth === 11) {
+        setViewMonth(0);
+        setViewYear(viewYear + 1);
+      } else {
+        setViewMonth(viewMonth + 1);
+      }
+    } else if (viewMode === 'months') {
       setViewYear(viewYear + 1);
-    } else {
-      setViewMonth(viewMonth + 1);
+    } else if (viewMode === 'years') {
+      setViewYear(viewYear + 12);
     }
   };
 
@@ -279,6 +301,7 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     const now = new Date();
     setViewYear(now.getFullYear());
     setViewMonth(now.getMonth());
+    setViewMode('days');
     handleSelectDate(now.getDate());
   };
 
@@ -330,12 +353,15 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
     return dayStr === todayStr;
   };
 
+  // Year range start for Decade View (12 years)
+  const decadeStart = viewYear - (viewYear % 12);
+  const decadeYears = Array.from({ length: 12 }, (_, i) => decadeStart + i);
+
   return (
     <div className="cal-container" ref={containerRef}>
-      {/* Input container allowing typing and calendar button */}
       <div
         className={`cal-input ${isOpen ? 'cal-input-active' : ''} ${disabled ? 'cal-input-disabled' : ''}`}
-        style={{ padding: 0 }}
+        style={{ padding: 0, ...style }}
       >
         <input
           type="text"
@@ -347,7 +373,7 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
             boxShadow: 'none',
             width: '100%',
             height: '100%',
-            padding: '0.625rem 0.875rem',
+            padding: '0 0.875rem',
             fontSize: 'inherit',
             fontWeight: value ? 500 : 400,
             color: 'inherit',
@@ -467,54 +493,150 @@ export const BuddhistDateInput: React.FC<BuddhistDateInputProps> = ({
         >
           {/* Header */}
           <div className="cal-header">
-            <button type="button" className="cal-nav-btn" onClick={handlePrevMonth} aria-label="เดือนก่อนหน้า">
+            <button type="button" className="cal-nav-btn" onClick={handlePrev} aria-label="ย้อนกลับ">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <div className="cal-title">
-              <span className="cal-title-month">{THAI_MONTHS[viewMonth]}</span>
-              <span className="cal-title-year">พ.ศ. {viewYear + 543}</span>
+            
+            <div className="cal-title" style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              {viewMode === 'days' && (
+                <button type="button" onClick={() => setViewMode('months')} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', padding: '0.125rem 0.5rem', borderRadius: '4px' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-primary)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  {THAI_MONTHS[viewMonth]} {viewYear + 543}
+                </button>
+              )}
+              {viewMode === 'months' && (
+                <button type="button" onClick={() => setViewMode('years')} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', padding: '0.125rem 0.35rem', borderRadius: '4px' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-primary)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  {viewYear + 543}
+                </button>
+              )}
+              {viewMode === 'years' && (
+                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', padding: '0.125rem 0.35rem' }}>
+                  {decadeStart + 543} - {decadeStart + 11 + 543}
+                </span>
+              )}
             </div>
-            <button type="button" className="cal-nav-btn" onClick={handleNextMonth} aria-label="เดือนถัดไป">
+
+            <button type="button" className="cal-nav-btn" onClick={handleNext} aria-label="ถัดไป">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
           </div>
 
-          {/* Day-of-week labels */}
-          <div className="cal-weekdays">
-            {THAI_DAYS_SHORT.map((d, i) => (
-              <div key={i} className={`cal-weekday ${i === 0 ? 'cal-weekday-sun' : ''}`}>{d}</div>
-            ))}
-          </div>
+          {/* Body Render based on viewMode */}
+          {viewMode === 'days' && (
+            <>
+              {/* Day-of-week labels */}
+              <div className="cal-weekdays">
+                {THAI_DAYS_SHORT.map((d, i) => (
+                  <div key={i} className={`cal-weekday ${i === 0 ? 'cal-weekday-sun' : ''}`}>{d}</div>
+                ))}
+              </div>
 
-          {/* Days grid */}
-          <div className="cal-days">
-            {calendarDays.map((cell, idx) => {
-              const selected = isSelected(cell.day, cell.type);
-              const todayMark = isToday(cell.day, cell.type);
-              const isSun = idx % 7 === 0;
+              {/* Days grid */}
+              <div className="cal-days">
+                {calendarDays.map((cell, idx) => {
+                  const selected = isSelected(cell.day, cell.type);
+                  const todayMark = isToday(cell.day, cell.type);
+                  const isSun = idx % 7 === 0;
 
-              let className = 'cal-day';
-              if (cell.type !== 'current') className += ' cal-day-outside';
-              if (cell.disabled) className += ' cal-day-disabled';
-              if (selected) className += ' cal-day-selected';
-              if (todayMark && !selected) className += ' cal-day-today';
-              if (isSun && cell.type === 'current') className += ' cal-day-sun';
+                  let className = 'cal-day';
+                  if (cell.type !== 'current') className += ' cal-day-outside';
+                  if (cell.disabled) className += ' cal-day-disabled';
+                  if (selected) className += ' cal-day-selected';
+                  if (todayMark && !selected) className += ' cal-day-today';
+                  if (isSun && cell.type === 'current') className += ' cal-day-sun';
 
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  className={className}
-                  disabled={cell.disabled || cell.type !== 'current'}
-                  onClick={() => {
-                    if (cell.type === 'current' && !cell.disabled) handleSelectDate(cell.day);
-                  }}
-                >
-                  {cell.day}
-                </button>
-              );
-            })}
-          </div>
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={className}
+                      disabled={cell.disabled || cell.type !== 'current'}
+                      onClick={() => {
+                        if (cell.type === 'current' && !cell.disabled) handleSelectDate(cell.day);
+                      }}
+                    >
+                      {cell.day}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {viewMode === 'months' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', padding: '0.75rem' }}>
+              {THAI_MONTHS_SHORT.map((m, idx) => {
+                const isCurrentMonth = idx === viewMonth;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setViewMonth(idx);
+                      setViewMode('days');
+                    }}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.75rem 0',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: isCurrentMonth ? 'var(--primary)' : 'transparent',
+                      color: isCurrentMonth ? 'white' : 'var(--text-primary)',
+                      transition: 'all 0.15s ease',
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isCurrentMonth) e.currentTarget.style.background = 'var(--bg-primary)';
+                    }}
+                    onMouseLeave={e => {
+                      if (!isCurrentMonth) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {viewMode === 'years' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', padding: '0.75rem' }}>
+              {decadeYears.map((y) => {
+                const isCurrentYear = y === viewYear;
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => {
+                      setViewYear(y);
+                      setViewMode('months');
+                    }}
+                    style={{
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.75rem 0',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: isCurrentYear ? 'var(--primary)' : 'transparent',
+                      color: isCurrentYear ? 'white' : 'var(--text-primary)',
+                      transition: 'all 0.15s ease',
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={e => {
+                      if (!isCurrentYear) e.currentTarget.style.background = 'var(--bg-primary)';
+                    }}
+                    onMouseLeave={e => {
+                      if (!isCurrentYear) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {y + 543}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Footer */}
           <div className="cal-footer">

@@ -991,7 +991,27 @@ body {
   gap: 1.25rem;
 }
 
-.form-select, .form-textarea {
+.form-select {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364777b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.form-textarea {
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
@@ -1005,6 +1025,7 @@ body {
 
 .form-select:hover, .form-textarea:hover {
   border-color: var(--text-muted);
+  background-color: var(--bg-surface-solid);
 }
 
 .form-select:focus, .form-textarea:focus {
@@ -1426,8 +1447,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0.75rem 0.75rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(139, 92, 246, 0.04));
+  padding: 0.75rem;
+  background: var(--bg-surface-solid);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -1439,18 +1460,17 @@ body {
   height: 32px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--bg-surface-solid);
+  background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
 }
 
 .cal-nav-btn:hover {
-  background: var(--primary);
-  color: white;
-  transform: scale(1.08);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transform: none;
+  box-shadow: none;
 }
 
 .cal-nav-btn:active {
@@ -1459,39 +1479,35 @@ body {
 
 .cal-title {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 4px;
 }
 
 .cal-title-month {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
 }
 
 .cal-title-year {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--primary);
-  letter-spacing: 0.03em;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* Weekday labels */
 .cal-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 0.625rem 0.625rem 0.25rem;
+  padding: 0.5rem 0.5rem 0.25rem;
 }
 
 .cal-weekday {
   text-align: center;
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
-  letter-spacing: 0.04em;
   padding: 0.25rem 0;
 }
 
@@ -1503,7 +1519,7 @@ body {
 .cal-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 0.25rem 0.625rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.5rem;
   gap: 2px;
 }
 
@@ -1520,14 +1536,14 @@ body {
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
   position: relative;
 }
 
 .cal-day:hover:not(:disabled) {
-  background: var(--primary-subtle);
-  color: var(--primary);
-  transform: scale(1.1);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transform: none;
 }
 
 .cal-day:active:not(:disabled) {
@@ -1552,32 +1568,22 @@ body {
 .cal-day-today {
   color: var(--primary);
   font-weight: 700;
-  background: rgba(99, 102, 241, 0.08);
-}
-
-.cal-day-today::after {
-  content: '';
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--primary);
+  background: var(--primary-subtle);
 }
 
 /* Selected */
 .cal-day-selected {
-  background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
+  background: var(--primary) !important;
   color: white !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+  box-shadow: none;
 }
 
 .cal-day-selected:hover {
-  transform: scale(1.12) !important;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  background: var(--primary-hover) !important;
+  color: white !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Sunday color */
