@@ -426,14 +426,20 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       if (e1) throw e1;
       setTotalCount(count ?? 0);
 
-      // Fetch all FBS results (latest per patient) for lookup
-      const { data: fbsRows, error: e2 } = await supabase
-        .from('patient_lab_results')
-        .select('patient_id, result_value, test_date')
-        .eq('test_name', 'Fasting Blood Sugar')
-        .eq('status', 'completed')
-        .order('test_date', { ascending: false });
-      if (e2) throw e2;
+      // Fetch FBS results (latest per patient) only for patients in current hba1cRows page
+      const patientIds = Array.from(new Set((hba1cRows || []).map(r => r.patient_id).filter(Boolean)));
+      let fbsRows: any[] = [];
+      if (patientIds.length > 0) {
+        const { data, error: e2 } = await supabase
+          .from('patient_lab_results')
+          .select('patient_id, result_value, test_date')
+          .eq('test_name', 'Fasting Blood Sugar')
+          .eq('status', 'completed')
+          .in('patient_id', patientIds)
+          .order('test_date', { ascending: false });
+        if (e2) throw e2;
+        fbsRows = data || [];
+      }
 
       // Build FBS map: patient_id -> latest FBS row
       const fbsMap = new Map<string, { result_value: string; test_date: string }>();
