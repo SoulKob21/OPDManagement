@@ -329,6 +329,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [exportMessage, setExportMessage] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [exportYear, setExportYear] = useState(currentYearStr);
+  const [exportMonth, setExportMonth] = useState(currentMonthStr);
 
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: (currentYear + 1) - 2024 + 1 }, (_, i) => {
@@ -1264,6 +1266,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         <button
           className="btn"
           onClick={() => {
+            setExportYear(filterYear || currentYearStr);
+            setExportMonth(filterMonth || currentMonthStr);
             setExportSuccess(false);
             setExportProgress(0);
             setExportMessage('');
@@ -1458,7 +1462,26 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>เลือกโหมดขอบเขตข้อมูลเพื่อนำออก Excel:</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>เลือกปีและเดือนที่ต้องการนำออกรายงาน:</span>
+              
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.15rem', marginBottom: '0.15rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>ปี (พ.ศ.)</label>
+                  <CustomSelect value={exportYear} onChange={val => setExportYear(val)} options={yearOptions} />
+                </div>
+                {exportMode === 'month' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>เดือน</label>
+                    <CustomSelect 
+                      value={exportMonth} 
+                      onChange={val => setExportMonth(val)} 
+                      options={monthOptions.filter(o => o.value !== '')}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '0.25rem' }}>เลือกโหมดขอบเขตข้อมูลเพื่อนำออก Excel:</span>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div
@@ -1477,7 +1500,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                 >
                   <span style={{ fontSize: '0.875rem', fontWeight: 700, color: exportMode === 'month' ? '#10b981' : 'var(--text-primary)' }}>รายเดือน</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    เฉพาะ {THAI_MONTHS.find(m => m.value === filterMonth)?.label ?? filterMonth} พ.ศ. {parseInt(filterYear) + 543}
+                    เฉพาะ {THAI_MONTHS.find(m => m.value === exportMonth)?.label ?? exportMonth} พ.ศ. {parseInt(exportYear) + 543}
                   </span>
                 </div>
 
@@ -1497,7 +1520,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                 >
                   <span style={{ fontSize: '0.875rem', fontWeight: 700, color: exportMode === 'year' ? '#10b981' : 'var(--text-primary)' }}>รายปี</span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    รวมทั้งปี พ.ศ. {parseInt(filterYear) + 543} (รองรับขนาด &gt;1,000 แถว)
+                    รวมทั้งปี พ.ศ. {parseInt(exportYear) + 543} (รองรับขนาด &gt;1,000 แถว)
                   </span>
                 </div>
               </div>
