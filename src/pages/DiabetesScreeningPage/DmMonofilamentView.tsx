@@ -1170,6 +1170,26 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
     setShowForm(true);
   };
 
+  const handleDeleteRecord = async (row: any) => {
+    const isMock = !row.rawRecord || typeof row.id === 'number';
+    const confirmMsg = `คุณต้องการลบข้อมูลการตรวจคัดกรองเท้าของ ${row.name} (HN: ${row.hn}) ใช่หรือไม่?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      if (!isMock) {
+        const { error } = await supabase
+          .from('patient_foot_assessments')
+          .delete()
+          .eq('id', row.rawRecord.id);
+        if (error) throw error;
+      }
+      alert('ลบข้อมูลการตรวจคัดกรองเท้าสำเร็จ');
+      fetchListData(page, pageSize);
+    } catch (err: any) {
+      alert('ลบข้อมูลไม่สำเร็จ: ' + err.message);
+    }
+  };
+
   const DoctorAutocomplete = () => (
     selectedDoctor ? (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.75rem', height: '38px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--primary-glow)', background: 'var(--bg-surface-solid)' }}>
@@ -1701,13 +1721,42 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
                         </td>
                         <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{row.remarks}</td>
                         <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                          <button
-                            className="btn btn-secondary"
-                            onClick={() => handleStartEdit(row)}
-                            style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                          >
-                            ✏️ แก้ไข
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleStartEdit(row)}
+                              style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                            >
+                              ✏️ แก้ไข
+                            </button>
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => handleDeleteRecord(row)}
+                              style={{
+                                width: 'auto',
+                                padding: '0.25rem 0.5rem',
+                                fontSize: '0.75rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                background: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fca5a5',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                transition: 'all 0.15s'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#fca5a5';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = '#fee2e2';
+                              }}
+                            >
+                              🗑️ ลบ
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
