@@ -174,6 +174,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
     setPatientNotFound(false);
     setSelectedPatient(null);
     if (!query.trim()) { setSearchResults([]); setShowSearchResults(false); return; }
+    if (query.trim().length < 4) { setSearchResults([]); setShowSearchResults(false); return; }
     try {
       setSearchingHn(true);
       const q = `%${query.trim()}%`;
@@ -182,7 +183,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
         .eq('status', 'active').limit(8);
       setSearchResults(data || []);
       setShowSearchResults(true);
-      if ((!data || data.length === 0) && query.trim().length >= 2) {
+      if ((!data || data.length === 0) && query.trim().length >= 4) {
         setPatientNotFound(true);
         setMiniPatientForm({ ...initialPatientForm, hn: query.trim() });
         setLastAppointmentDate(TODAY);

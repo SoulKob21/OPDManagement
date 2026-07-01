@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS public.patients (
     allergy_note TEXT,
     chronic_disease_note TEXT,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    search_vector tsvector GENERATED ALWAYS AS (
+        to_tsvector('simple', coalesce(hn, '') || ' ' || 
+                              coalesce(citizen_id, '') || ' ' || 
+                              coalesce(passport_number, '') || ' ' || 
+                              coalesce(first_name, '') || ' ' || 
+                              coalesce(last_name, '') || ' ' || 
+                              coalesce(phone_number, ''))
+    ) STORED,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -92,6 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_doctors_name ON public.doctors(name);
 CREATE INDEX IF NOT EXISTS idx_doctors_license ON public.doctors(license_no);
 CREATE INDEX IF NOT EXISTS idx_patients_hn ON public.patients(hn);
 CREATE INDEX IF NOT EXISTS idx_patients_search ON public.patients(first_name, last_name, phone_number, citizen_id, passport_number);
+CREATE INDEX IF NOT EXISTS idx_patients_search_vector_gin ON public.patients USING gin(search_vector);
 CREATE INDEX IF NOT EXISTS idx_appointments_date_patient ON public.appointments(appointment_date, patient_id);
 CREATE INDEX IF NOT EXISTS idx_queues_date_status ON public.queues(queue_date, status);
 CREATE INDEX IF NOT EXISTS idx_queues_dept ON public.queues(department);

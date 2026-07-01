@@ -110,11 +110,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  // Reset page when patients change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [patients.length, searchQuery]);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Doctor Autocomplete State
   const [doctorQuery, setDoctorQuery] = useState('');
@@ -186,8 +182,8 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
   };
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    fetchPatients(currentPage, pageSize, searchQuery);
+  }, [currentPage, pageSize]);
 
   useEffect(() => {
     if (selectedPatient && viewMode === 'detail') {
@@ -200,17 +196,30 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
     }
   }, [selectedPatient, viewMode]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (targetPage: number = currentPage, targetPageSize: number = pageSize, search: string = searchQuery) => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchErr } = await supabase
+      
+      let query = supabase
         .from('patients')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
+
+      if (search.trim()) {
+        const cleanSearch = search.trim().split(/\s+/).map(w => `${w}:*`).join(' & ');
+        query = query.textSearch('search_vector', cleanSearch, { config: 'simple' });
+      }
+
+      const fromRange = (targetPage - 1) * targetPageSize;
+      const toRange = targetPage * targetPageSize - 1;
+
+      const { data, error: fetchErr, count } = await query
+        .order('created_at', { ascending: false })
+        .range(fromRange, toRange);
 
       if (fetchErr) throw fetchErr;
       setPatients(data || []);
+      setTotalCount(count ?? 0);
     } catch (err: any) {
       console.error('Error fetching patients:', err);
       setError('ไม่สามารถโหลดข้อมูลผู้ป่วยได้ กรุณาลองใหม่อีกครั้ง');
@@ -442,27 +451,15 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) {
-      fetchPatients();
+    const query = searchQuery.trim();
+    if (query && query.length < 4) {
+      alert('กรุณากรอกข้อมูลอย่างน้อย 4 ตัวอักษรเพื่อค้นหา');
       return;
     }
-    try {
-      setLoading(true);
-      setError(null);
-      const query = `%${searchQuery.trim()}%`;
-      const { data, error: searchErr } = await supabase
-        .from('patients')
-        .select('*')
-        .or(`hn.ilike.${query},citizen_id.ilike.${query},passport_number.ilike.${query},first_name.ilike.${query},last_name.ilike.${query},phone_number.ilike.${query}`)
-        .order('created_at', { ascending: false });
-
-      if (searchErr) throw searchErr;
-      setPatients(data || []);
-    } catch (err: any) {
-      console.error('Search error:', err);
-      setError('เกิดข้อผิดพลาดในการค้นหาข้อมูลผู้ป่วย');
-    } finally {
-      setLoading(false);
+    if (currentPage === 1) {
+      fetchPatients(1, pageSize, query);
+    } else {
+      setCurrentPage(1);
     }
   };
 
@@ -594,7 +591,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
       if (deleteErr) throw deleteErr;
       setSuccess(`ลบข้อมูลผู้ป่วย "${patient.title}${patient.first_name} ${patient.last_name}" สำเร็จ`);
-      fetchPatients();
+      fetchPatients(currentPage, pageSize, searchQuery);
       if (viewMode === 'detail') {
         setViewMode('list');
         setSelectedPatient(null);
@@ -1484,12 +1481,12 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
   // ========= LIST VIEW =========
   const renderList = () => {
-    const totalItems = patients.length;
+    const totalItems = totalCount;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
     const safeCurrentPage = Math.min(currentPage, totalPages);
     const indexOfLastItem = safeCurrentPage * pageSize;
     const indexOfFirstItem = indexOfLastItem - pageSize;
-    const currentPatients = patients.slice(indexOfFirstItem, indexOfLastItem);
+    const currentPatients = patients;
 
     return (
       <div>
@@ -1516,7 +1513,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
           </div>
           <button type="submit" className="btn btn-secondary" style={{ width: 'auto' }}>ค้นหา</button>
           {searchQuery && (
-            <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setSearchQuery(''); fetchPatients(); }}>
+            <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setSearchQuery(''); setCurrentPage(1); fetchPatients(1, pageSize, ''); }}>
               ล้างตัวกรอง
             </button>
           )}

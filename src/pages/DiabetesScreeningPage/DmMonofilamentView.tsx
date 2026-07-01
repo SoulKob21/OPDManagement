@@ -186,13 +186,14 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
   const handleSearchHn = async (query: string) => {
     setHnQuery(query); setPatientNotFound(false); setSelectedPatient(null);
     if (!query.trim()) { setSearchResults([]); setShowSearchResults(false); return; }
+    if (query.trim().length < 4) { setSearchResults([]); setShowSearchResults(false); return; }
     try {
       setSearchingHn(true);
       const q = `%${query.trim()}%`;
       const { data } = await supabase.from('patients').select('*')
         .or(`hn.ilike.${q},first_name.ilike.${q},last_name.ilike.${q}`).eq('status', 'active').limit(8);
       setSearchResults(data || []); setShowSearchResults(true);
-      if ((!data || data.length === 0) && query.trim().length >= 2) {
+      if ((!data || data.length === 0) && query.trim().length >= 4) {
         setPatientNotFound(true);
         setMiniPatientForm({ ...initialPatientForm, hn: query.trim() });
         setLastAppointmentDate(TODAY);
