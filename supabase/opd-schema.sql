@@ -659,7 +659,68 @@ INSERT INTO public.user_permissions (
 ) ON CONFLICT (user_id) DO NOTHING;
 
 
+-- ====================================================================
+-- 8. DISEASES CATALOG
+-- ====================================================================
+
+-- Diseases Table
+CREATE TABLE IF NOT EXISTS public.diseases (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    code TEXT UNIQUE NOT NULL, -- e.g., 'DM', 'HT', 'DLP', 'CKD'
+    nameen TEXT NOT NULL,
+    nameth TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.diseases ENABLE ROW LEVEL SECURITY;
+
+-- Policies for diseases
+CREATE POLICY "Allow authenticated users to read diseases" ON public.diseases 
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert diseases" ON public.diseases 
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to update diseases" ON public.diseases 
+    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to delete diseases" ON public.diseases 
+    FOR DELETE TO authenticated USING (true);
+
+-- Seed initial required diseases: DM, HT, DLP, CKD
+INSERT INTO public.diseases (code, nameen, nameth, description) VALUES
+('DM', 'Diabetes Mellitus', 'โรคเบาหวาน', 'โรคเบาหวาน (Diabetes Mellitus) เป็นภาวะที่ร่างกายมีระดับน้ำตาลในเลือดสูงกว่าปกติ'),
+('HT', 'Hypertension', 'โรคความดันโลหิตสูง', 'โรคความดันโลหิตสูง (Hypertension) เป็นภาวะที่มีแรงดันของกระแสเลือดแรงกว่าปกติค้างเป็นเวลานาน'),
+('DLP', 'Dyslipidemia', 'โรคไขมันในเลือดสูง', 'โรคไขมันในเลือดสูง (Dyslipidemia) เป็นภาวะที่ร่างกายมีระดับไขมันในเลือดผิดปกติ'),
+('CKD', 'Chronic Kidney Disease', 'โรคไตเรื้อรัง', 'โรคไตเรื้อรัง (Chronic Kidney Disease) เป็นภาวะที่ไตทำงานผิดปกติเป็นระยะเวลานาน')
+ON CONFLICT (code) DO NOTHING;
 
 
+-- ====================================================================
+-- 9. PATIENT FOOT ASSESSMENTS
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.patient_foot_assessments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    exam_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    result_status TEXT NOT NULL CHECK (result_status IN ('ปกติ', 'ผิดปกติ')),
+    notes TEXT, -- Stores JSON structure: { ltResult, rtResult, wagnerGrade, pulseLt, pulseRt, remarks }
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+-- Enable RLS
+ALTER TABLE public.patient_foot_assessments ENABLE ROW LEVEL SECURITY;
 
+-- Policies for patient_foot_assessments
+CREATE POLICY "Allow authenticated users to read patient_foot_assessments" ON public.patient_foot_assessments 
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert patient_foot_assessments" ON public.patient_foot_assessments 
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to update patient_foot_assessments" ON public.patient_foot_assessments 
+    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to delete patient_foot_assessments" ON public.patient_foot_assessments 
+    FOR DELETE TO authenticated USING (true);
+
+-- Index
+CREATE INDEX IF NOT EXISTS idx_patient_foot_assess_patient ON public.patient_foot_assessments(patient_id);

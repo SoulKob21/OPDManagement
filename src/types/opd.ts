@@ -204,3 +204,14 @@ export interface PatientLabResult {
   updated_at: string;
 }
 
+export interface Disease {
+  id: string;
+  code: string;
+  nameen: string;
+  nameth: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+

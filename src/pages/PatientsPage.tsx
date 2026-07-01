@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Patient, Doctor, PatientDisease, PatientLabResult } from '../types/opd';
+import type { Patient, Doctor, PatientDisease, PatientLabResult, Disease } from '../types/opd';
 import { GENDERS, MEDICAL_RIGHTS, MOCK_DOCTORS } from '../types/opd';
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
+import { DiseaseMultiSelect } from '../components/DiseaseMultiSelect';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
@@ -56,6 +57,22 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
   const { allowedMenus } = useAuth();
   const canDelete = allowedMenus === null || allowedMenus.includes('delete-patients');
+
+  const formatChronicDiseases = (note?: string | null) => {
+    if (!note) return '—';
+    return note
+      .split(',')
+      .map(part => {
+        const trimmed = part.trim();
+        const matched = diseaseCatalog.find(
+          d => d.code.toLowerCase() === trimmed.toLowerCase() ||
+               d.nameth.toLowerCase() === trimmed.toLowerCase() ||
+               d.nameen.toLowerCase() === trimmed.toLowerCase()
+        );
+        return matched ? `${matched.code} (${matched.nameth})` : trimmed;
+      })
+      .join(', ');
+  };
 
   // View Mode
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -138,6 +155,26 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
       }
     };
     fetchDoctors();
+  }, []);
+
+  // Fetch disease catalog
+  const [diseaseCatalog, setDiseaseCatalog] = useState<Disease[]>([]);
+  const fetchDiseaseCatalog = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('diseases')
+        .select('*')
+        .order('code', { ascending: true });
+      if (!error && data) {
+        setDiseaseCatalog(data);
+      }
+    } catch (err) {
+      console.error('Error fetching disease catalog:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDiseaseCatalog();
   }, []);
 
   const filteredDoctors = doctorsList.filter((d) => {
@@ -914,12 +951,10 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
 
             <div className="form-group">
               <label className="form-label">โรคประจำตัว (ถ้ามี)</label>
-              <textarea
-                className="form-textarea"
-                rows={2}
-                placeholder="ระบุโรคประจำตัว..."
+              <DiseaseMultiSelect
                 value={formData.chronic_disease_note}
-                onChange={(e) => setFormData({ ...formData, chronic_disease_note: e.target.value })}
+                onChange={(val) => setFormData({ ...formData, chronic_disease_note: val })}
+                onDiseaseAdded={fetchDiseaseCatalog}
               />
             </div>
           </div>
@@ -1077,7 +1112,7 @@ export const PatientsPage: React.FC<{ onRefreshStats?: () => void }> = ({ onRefr
                     </div>
                     <div style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
                       <p><strong>โรคประจำตัว (สรุปตอนลงทะเบียน):</strong></p>
-                      <p style={{ color: 'var(--text-secondary)' }}>{selectedPatient.chronic_disease_note || '—'}</p>
+                      <p style={{ color: 'var(--text-secondary)' }}>{formatChronicDiseases(selectedPatient.chronic_disease_note)}</p>
                     </div>
                   </div>
 

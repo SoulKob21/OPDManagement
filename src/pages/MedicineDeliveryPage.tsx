@@ -5,6 +5,7 @@ import { DELIVERY_TYPE_LABELS, DELIVERY_STATUS_LABELS, MEDICAL_RIGHTS, GENDERS, 
 import { BuddhistDateInput } from '../components/BuddhistDateInput';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
+import { DiseaseMultiSelect } from '../components/DiseaseMultiSelect';
 import * as XLSX from 'xlsx';
 
 type ViewMode = 'list' | 'create';
@@ -1087,9 +1088,9 @@ export const MedicineDeliveryPage: React.FC<{ onRefreshStats?: () => void }> = (
                       </div>
                       <div className="form-group">
                         <label className="form-label">โรคประจำตัว</label>
-                        <textarea className="form-textarea" rows={2} placeholder="ระบุโรคประจำตัว..."
+                        <DiseaseMultiSelect
                           value={miniPatientForm.chronic_disease_note}
-                          onChange={(e) => setMiniPatientForm({ ...miniPatientForm, chronic_disease_note: e.target.value })}
+                          onChange={(val) => setMiniPatientForm({ ...miniPatientForm, chronic_disease_note: val })}
                         />
                       </div>
                     </div>
