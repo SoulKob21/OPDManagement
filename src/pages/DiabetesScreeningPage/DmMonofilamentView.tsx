@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import type { Patient, Doctor } from '../../types/opd';
 import { MOCK_DOCTORS } from '../../types/opd';
 import { BuddhistDateInput } from '../../components/BuddhistDateInput';
+import { DiseaseMultiSelect } from '../../components/DiseaseMultiSelect';
 import * as XLSX from 'xlsx';
 
 const THAI_MONTHS = [
@@ -1005,7 +1006,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
       if (!patientId) throw new Error('ไม่พบข้อมูลคนไข้');
 
       // Update diseases
-      if (editedDiseases && selectedPatient) {
+      if (selectedPatient) {
         await supabase.from('patients').update({ chronic_disease_note: editedDiseases }).eq('id', patientId);
       }
 
@@ -1337,15 +1338,16 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
               <BuddhistDateInput value={examDate} onChange={setExamDate} />
             </div>
 
-            <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.1rem' }}>🩺</span>
-              <div>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>โรคประจำตัวคนไข้:</span>{' '}
-                {editedDiseases ? (
-                  <span style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.875rem' }}>{editedDiseases}</span>
-                ) : (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>ไม่มีประวัติโรคประจำตัว</span>
-                )}
+            <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.1rem' }}>🩺</span>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>โรคประจำตัวคนไข้:</span>
+              </div>
+              <div style={{ width: '100%', marginTop: '0.25rem' }}>
+                <DiseaseMultiSelect
+                  value={editedDiseases}
+                  onChange={setEditedDiseases}
+                />
               </div>
             </div>
 
