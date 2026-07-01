@@ -724,3 +724,34 @@ CREATE POLICY "Allow authenticated users to delete patient_foot_assessments" ON 
 
 -- Index
 CREATE INDEX IF NOT EXISTS idx_patient_foot_assess_patient ON public.patient_foot_assessments(patient_id);
+
+
+-- ====================================================================
+-- 10. PATIENT ABI ASSESSMENTS
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.patient_abi_assessments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    exam_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    result_status TEXT NOT NULL CHECK (result_status IN ('ปกติ', 'ผิดปกติ')),
+    notes TEXT, -- Stores JSON structure: { ltResult: { status: 'normal'|'abnormal', value: string }, rtResult: { status: 'normal'|'abnormal', value: string }, remarks: string }
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.patient_abi_assessments ENABLE ROW LEVEL SECURITY;
+
+-- Policies for patient_abi_assessments
+CREATE POLICY "Allow authenticated users to read patient_abi_assessments" ON public.patient_abi_assessments 
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert patient_abi_assessments" ON public.patient_abi_assessments 
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to update patient_abi_assessments" ON public.patient_abi_assessments 
+    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to delete patient_abi_assessments" ON public.patient_abi_assessments 
+    FOR DELETE TO authenticated USING (true);
+
+-- Index
+CREATE INDEX IF NOT EXISTS idx_patient_abi_assess_patient ON public.patient_abi_assessments(patient_id);
+
