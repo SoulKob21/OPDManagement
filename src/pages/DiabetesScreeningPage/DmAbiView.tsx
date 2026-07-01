@@ -1001,14 +1001,14 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
           ← กลับรายการ
         </button>
 
-        <div className="dashboard-card" style={{ maxWidth: 800 }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <div className="dashboard-card" style={{ maxWidth: '100%' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
             🫀 {editingId ? 'แก้ไขข้อมูลการตรวจคัดกรอง ABI' : 'บันทึกผลการตรวจคัดกรอง ABI'}
           </h2>
 
           {/* Step 1 */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1.5rem', background: 'var(--bg-secondary)' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--primary)' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--primary)' }}>
               ขั้นตอนที่ 1: ค้นหาคนไข้ (กรอก HN หรือชื่อ)
             </h4>
 
@@ -1117,7 +1117,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
 
           {/* Step 2 */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
               ขั้นตอนที่ 2: บันทึกผลการตรวจคัดกรอง ABI
             </h4>
 
@@ -1143,33 +1143,59 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
               {/* Left Ankle */}
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: '#6366f1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🦵 ข้อเท้าซ้าย (Left Ankle)
                 </h4>
                 
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label className="form-label" style={{ fontWeight: 600 }}>ผลการตรวจข้อเท้าซ้าย</label>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.35rem' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                      <input
-                        type="radio"
-                        name="ltAnkleStatus"
-                        checked={ltResult.status === 'normal'}
-                        onChange={() => setLtResult({ status: 'normal', value: '' })}
-                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)' }}
-                      />
-                      <span>ปกติ</span>
-                    </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                      <input
-                        type="radio"
-                        name="ltAnkleStatus"
-                        checked={ltResult.status === 'abnormal'}
-                        onChange={() => setLtResult({ ...ltResult, status: 'abnormal' })}
-                        style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
-                      />
-                      <span style={{ color: '#dc2626', fontWeight: 600 }}>ผิดปกติ</span>
-                    </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', maxWidth: '280px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setLtResult({ status: 'normal', value: '' })}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        border: '1.5px solid',
+                        borderColor: ltResult.status === 'normal' ? '#10b981' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.375rem',
+                        background: ltResult.status === 'normal' ? '#10b981' : 'transparent',
+                        color: ltResult.status === 'normal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>✔️ ปกติ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLtResult({ ...ltResult, status: 'abnormal' })}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        border: '1.5px solid',
+                        borderColor: ltResult.status === 'abnormal' ? '#dc2626' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.375rem',
+                        background: ltResult.status === 'abnormal' ? '#dc2626' : 'transparent',
+                        color: ltResult.status === 'abnormal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>❌ ผิดปกติ</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1194,33 +1220,59 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
 
               {/* Right Ankle */}
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🦵 ข้อเท้าขวา (Right Ankle)
                 </h4>
                 
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label className="form-label" style={{ fontWeight: 600 }}>ผลการตรวจข้อเท้าขวา</label>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.35rem' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                      <input
-                        type="radio"
-                        name="rtAnkleStatus"
-                        checked={rtResult.status === 'normal'}
-                        onChange={() => setRtResult({ status: 'normal', value: '' })}
-                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)' }}
-                      />
-                      <span>ปกติ</span>
-                    </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                      <input
-                        type="radio"
-                        name="rtAnkleStatus"
-                        checked={rtResult.status === 'abnormal'}
-                        onChange={() => setRtResult({ ...rtResult, status: 'abnormal' })}
-                        style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
-                      />
-                      <span style={{ color: '#dc2626', fontWeight: 600 }}>ผิดปกติ</span>
-                    </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', maxWidth: '280px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setRtResult({ status: 'normal', value: '' })}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        border: '1.5px solid',
+                        borderColor: rtResult.status === 'normal' ? '#10b981' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.375rem',
+                        background: rtResult.status === 'normal' ? '#10b981' : 'transparent',
+                        color: rtResult.status === 'normal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>✔️ ปกติ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRtResult({ ...rtResult, status: 'abnormal' })}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        border: '1.5px solid',
+                        borderColor: rtResult.status === 'abnormal' ? '#dc2626' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.375rem',
+                        background: rtResult.status === 'abnormal' ? '#dc2626' : 'transparent',
+                        color: rtResult.status === 'abnormal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>❌ ผิดปกติ</span>
+                    </button>
                   </div>
                 </div>
 

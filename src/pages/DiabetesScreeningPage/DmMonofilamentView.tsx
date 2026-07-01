@@ -419,18 +419,59 @@ const FootResultInput = ({ side, value, onChange }: { side: 'Lt' | 'Rt'; value: 
   <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', border: '1px solid var(--border-color)' }}>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.75rem' }}>
       <span style={{ fontSize: '1.8rem', lineHeight: 1, marginBottom: '0.5rem', display: 'inline-block' }}>🦶</span>
-      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: side === 'Lt' ? '#6366f1' : '#f59e0b' }}>
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: side === 'Lt' ? '#6366f1' : '#f59e0b' }}>
         เท้า{side === 'Lt' ? 'ซ้าย (Lt.)' : 'ขวา (Rt.)'}
       </h3>
     </div>
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
-      {(['normal', 'abnormal'] as const).map(s => (
-        <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: value.status === s ? 700 : 400 }}>
-          <input type="radio" name={`foot-${side}`} value={s} checked={value.status === s}
-            onChange={() => onChange({ ...value, status: s })} style={{ accentColor: s === 'normal' ? '#10b981' : '#ef4444' }} />
-          <span style={{ color: s === 'normal' ? '#10b981' : '#ef4444' }}>{s === 'normal' ? '✅ ปกติ' : '❌ ผิดปกติ'}</span>
-        </label>
-      ))}
+    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', width: '100%', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '280px' }}>
+        <button
+          type="button"
+          onClick={() => onChange({ ...value, status: 'normal', positions: '', detail: '' })}
+          style={{
+            flex: 1,
+            height: '38px',
+            border: '1.5px solid',
+            borderColor: value.status === 'normal' ? '#10b981' : 'var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.375rem',
+            background: value.status === 'normal' ? '#10b981' : 'transparent',
+            color: value.status === 'normal' ? '#fff' : 'var(--text-secondary)',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>✔️ ปกติ</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange({ ...value, status: 'abnormal' })}
+          style={{
+            flex: 1,
+            height: '38px',
+            border: '1.5px solid',
+            borderColor: value.status === 'abnormal' ? '#dc2626' : 'var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.375rem',
+            background: value.status === 'abnormal' ? '#dc2626' : 'transparent',
+            color: value.status === 'abnormal' ? '#fff' : 'var(--text-secondary)',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>❌ ผิดปกติ</span>
+        </button>
+      </div>
     </div>
     {value.status === 'abnormal' && (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -1236,12 +1277,12 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
           ← กลับรายการ
         </button>
 
-        <div className="dashboard-card">
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem' }}>🦶 บันทึกผลการตรวจคัดกรองเท้าด้วย Monofilament</h2>
+        <div className="dashboard-card" style={{ maxWidth: '100%' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>🦶 บันทึกผลการตรวจคัดกรองเท้าด้วย Monofilament</h2>
 
           {/* Step 1 */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem', background: 'var(--primary-subtle)' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--primary)' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--primary)' }}>
               ขั้นตอนที่ 1: ค้นหาคนไข้ (กรอก HN หรือชื่อ)
             </h4>
 
@@ -1349,7 +1390,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
 
           {/* Step 2 — always visible */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
               ขั้นตอนที่ 2: บันทึกผลการตรวจ
             </h4>
 
@@ -1373,7 +1414,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
 
             {/* Foot Ulcer Assessment Block */}
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 🩹 การประเมินแผลบริเวณเท้า (Foot Ulcer Assessment)
               </h4>
               
@@ -1407,7 +1448,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
 
             {/* Pulse Evaluation & Remarks Block */}
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', marginTop: '1.25rem', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--primary)' }}>
                 💓 การประเมินชีพจรบริเวณเท้าทั้ง 2 ข้าง (2 ตำแหน่ง)
               </h4>
               
@@ -1415,28 +1456,105 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
                 {/* Left Pulse */}
                 <div style={{ background: 'var(--bg-surface-solid)', padding: '1rem', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                   <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: '#6366f1' }}>ชีพจรเท้าซ้าย (Lt.)</h5>
-                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
-                    {(['normal', 'abnormal'] as const).map(s => (
-                      <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: pulseLt.status === s ? 600 : 400 }}>
-                        <input type="radio" name="pulse-lt-status" checked={pulseLt.status === s}
-                          onChange={() => setPulseLt({ ...pulseLt, status: s, ...(s === 'normal' ? { dorsalisPedis: false, posteriorTibial: false } : {}) })} />
-                        <span>{s === 'normal' ? 'ปกติ' : 'ไม่ปกติ'}</span>
-                      </label>
-                    ))}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', maxWidth: '280px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPulseLt({ status: 'normal', dorsalisPedis: false, posteriorTibial: false })}
+                      style={{
+                        flex: 1,
+                        height: '34px',
+                        border: '1.5px solid',
+                        borderColor: pulseLt.status === 'normal' ? '#10b981' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        background: pulseLt.status === 'normal' ? '#10b981' : 'transparent',
+                        color: pulseLt.status === 'normal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>✔️ ปกติ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPulseLt({ ...pulseLt, status: 'abnormal' })}
+                      style={{
+                        flex: 1,
+                        height: '34px',
+                        border: '1.5px solid',
+                        borderColor: pulseLt.status === 'abnormal' ? '#dc2626' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        background: pulseLt.status === 'abnormal' ? '#dc2626' : 'transparent',
+                        color: pulseLt.status === 'abnormal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>❌ ไม่ปกติ</span>
+                    </button>
                   </div>
                   {pulseLt.status === 'abnormal' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ตำแหน่งชีพจรที่ไม่ปกติ:</span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem' }}>
-                        <input type="checkbox" checked={pulseLt.dorsalisPedis}
-                          onChange={e => setPulseLt({ ...pulseLt, dorsalisPedis: e.target.checked })} />
-                        <span>Dorsalis pedis</span>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem' }}>
-                        <input type="checkbox" checked={pulseLt.posteriorTibial}
-                          onChange={e => setPulseLt({ ...pulseLt, posteriorTibial: e.target.checked })} />
-                        <span>Posterior tibial</span>
-                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '360px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPulseLt({ ...pulseLt, dorsalisPedis: !pulseLt.dorsalisPedis })}
+                          style={{
+                            flex: 1,
+                            height: '34px',
+                            border: '1.5px solid',
+                            borderColor: pulseLt.dorsalisPedis ? '#6366f1' : 'var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem',
+                            background: pulseLt.dorsalisPedis ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                            color: pulseLt.dorsalisPedis ? '#6366f1' : 'var(--text-secondary)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span>{pulseLt.dorsalisPedis ? '✔️ Dorsalis pedis' : 'Dorsalis pedis'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPulseLt({ ...pulseLt, posteriorTibial: !pulseLt.posteriorTibial })}
+                          style={{
+                            flex: 1,
+                            height: '34px',
+                            border: '1.5px solid',
+                            borderColor: pulseLt.posteriorTibial ? '#6366f1' : 'var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem',
+                            background: pulseLt.posteriorTibial ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                            color: pulseLt.posteriorTibial ? '#6366f1' : 'var(--text-secondary)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span>{pulseLt.posteriorTibial ? '✔️ Posterior tibial' : 'Posterior tibial'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1444,28 +1562,105 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
                 {/* Right Pulse */}
                 <div style={{ background: 'var(--bg-surface-solid)', padding: '1rem', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                   <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem', color: '#f59e0b' }}>ชีพจรเท้าขวา (Rt.)</h5>
-                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
-                    {(['normal', 'abnormal'] as const).map(s => (
-                      <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: pulseRt.status === s ? 600 : 400 }}>
-                        <input type="radio" name="pulse-rt-status" checked={pulseRt.status === s}
-                          onChange={() => setPulseRt({ ...pulseRt, status: s, ...(s === 'normal' ? { dorsalisPedis: false, posteriorTibial: false } : {}) })} />
-                        <span>{s === 'normal' ? 'ปกติ' : 'ไม่ปกติ'}</span>
-                      </label>
-                    ))}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', maxWidth: '280px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPulseRt({ status: 'normal', dorsalisPedis: false, posteriorTibial: false })}
+                      style={{
+                        flex: 1,
+                        height: '34px',
+                        border: '1.5px solid',
+                        borderColor: pulseRt.status === 'normal' ? '#10b981' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        background: pulseRt.status === 'normal' ? '#10b981' : 'transparent',
+                        color: pulseRt.status === 'normal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>✔️ ปกติ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPulseRt({ ...pulseRt, status: 'abnormal' })}
+                      style={{
+                        flex: 1,
+                        height: '34px',
+                        border: '1.5px solid',
+                        borderColor: pulseRt.status === 'abnormal' ? '#dc2626' : 'var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        background: pulseRt.status === 'abnormal' ? '#dc2626' : 'transparent',
+                        color: pulseRt.status === 'abnormal' ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>❌ ไม่ปกติ</span>
+                    </button>
                   </div>
                   {pulseRt.status === 'abnormal' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px dashed var(--border-color)', paddingTop: '0.5rem' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ตำแหน่งชีพจรที่ไม่ปกติ:</span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem' }}>
-                        <input type="checkbox" checked={pulseRt.dorsalisPedis}
-                          onChange={e => setPulseRt({ ...pulseRt, dorsalisPedis: e.target.checked })} />
-                        <span>Dorsalis pedis</span>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontSize: '0.8125rem' }}>
-                        <input type="checkbox" checked={pulseRt.posteriorTibial}
-                          onChange={e => setPulseRt({ ...pulseRt, posteriorTibial: e.target.checked })} />
-                        <span>Posterior tibial</span>
-                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '360px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPulseRt({ ...pulseRt, dorsalisPedis: !pulseRt.dorsalisPedis })}
+                          style={{
+                            flex: 1,
+                            height: '34px',
+                            border: '1.5px solid',
+                            borderColor: pulseRt.dorsalisPedis ? '#f59e0b' : 'var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem',
+                            background: pulseRt.dorsalisPedis ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                            color: pulseRt.dorsalisPedis ? '#d97706' : 'var(--text-secondary)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span>{pulseRt.dorsalisPedis ? '✔️ Dorsalis pedis' : 'Dorsalis pedis'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPulseRt({ ...pulseRt, posteriorTibial: !pulseRt.posteriorTibial })}
+                          style={{
+                            flex: 1,
+                            height: '34px',
+                            border: '1.5px solid',
+                            borderColor: pulseRt.posteriorTibial ? '#f59e0b' : 'var(--border-color)',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem',
+                            background: pulseRt.posteriorTibial ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
+                            color: pulseRt.posteriorTibial ? '#d97706' : 'var(--text-secondary)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span>{pulseRt.posteriorTibial ? '✔️ Posterior tibial' : 'Posterior tibial'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
