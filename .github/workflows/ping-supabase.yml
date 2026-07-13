@@ -1,0 +1,17 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC (07:00 Thai Time)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual run in GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API (Query Patients)
+        run: |
+          curl -i -X GET "https://zwjyurmwfvyjvbtjaqvh.supabase.co/rest/v1/patients?limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3anl1cm13ZnZ5anZidGphcXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDM2ODEsImV4cCI6MjA5OTUxOTY4MX0.dWBgbczhSeDHQFFGU1F6viBgHq7CdnWHX2RFyMOwSlo' }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3anl1cm13ZnZ5anZidGphcXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDM2ODEsImV4cCI6MjA5OTUxOTY4MX0.dWBgbczhSeDHQFFGU1F6viBgHq7CdnWHX2RFyMOwSlo' }}"
