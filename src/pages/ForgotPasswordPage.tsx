@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
-import { supabase, TURNSTILE_SITE_KEY } from '../lib/supabase';
+import { supabase, TURNSTILE_SITE_KEY, ENABLE_TURNSTILE } from '../lib/supabase';
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -30,7 +30,7 @@ export const ForgotPasswordPage: React.FC = () => {
     }
 
     // 2. Validate CAPTCHA Token
-    if (!captchaToken) {
+    if (ENABLE_TURNSTILE && !captchaToken) {
       setError('Please complete the security check.');
       return;
     }
@@ -43,7 +43,7 @@ export const ForgotPasswordPage: React.FC = () => {
       // 3. Reset password request
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectToUrl,
-        captchaToken: captchaToken, // pass Turnstile token
+        ...(ENABLE_TURNSTILE && captchaToken ? { captchaToken } : {}), // pass Turnstile token
       });
 
       // Reset Turnstile on completed attempt
@@ -153,30 +153,36 @@ export const ForgotPasswordPage: React.FC = () => {
             />
           </div>
 
-          {TURNSTILE_SITE_KEY && !message ? (
-            <div className="turnstile-container">
-              <Turnstile
-                ref={turnstileRef}
-                siteKey={TURNSTILE_SITE_KEY}
-                options={{
-                  theme: 'auto',
-                }}
-                onSuccess={(token) => setCaptchaToken(token)}
-                onError={() => {
-                  setError('Security check failed to load. Please try refreshing.');
-                  setCaptchaToken(null);
-                }}
-                onExpire={() => {
-                  setError('Security check session expired. Please verify again.');
-                  setCaptchaToken(null);
-                }}
-              />
-            </div>
+          {ENABLE_TURNSTILE && !message ? (
+            TURNSTILE_SITE_KEY ? (
+              <div className="turnstile-container">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={TURNSTILE_SITE_KEY}
+                  options={{
+                    theme: 'auto',
+                  }}
+                  onSuccess={(token) => setCaptchaToken(token)}
+                  onError={() => {
+                    setError('Security check failed to load. Please try refreshing.');
+                    setCaptchaToken(null);
+                  }}
+                  onExpire={() => {
+                    setError('Security check session expired. Please verify again.');
+                    setCaptchaToken(null);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="alert alert-danger" role="alert" style={{ marginBottom: '1.25rem' }}>
+                Security Widget Key is not configured.
+              </div>
+            )
           ) : null}
 
           <button
             type="submit"
-            disabled={loading || !captchaToken || !!message}
+            disabled={loading || (ENABLE_TURNSTILE && !captchaToken) || !!message}
             className="btn btn-primary"
             style={{ marginBottom: '1.25rem' }}
           >

@@ -20,6 +20,10 @@ if (missingVars.length > 0) {
 // Export the site key for Turnstile
 export const TURNSTILE_SITE_KEY = turnstileSiteKey || '';
 
+// Toggle Turnstile CAPTCHA: set to true to enable, false to disable
+// You can also control this using VITE_ENABLE_TURNSTILE in .env if desired
+export const ENABLE_TURNSTILE = false;
+
 // Initialize the Supabase client
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder-project.supabase.co',
