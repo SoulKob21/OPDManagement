@@ -5,6 +5,7 @@ import { MOCK_DOCTORS } from '../../types/opd';
 import { BuddhistDateInput } from '../../components/BuddhistDateInput';
 import { DiseaseMultiSelect } from '../../components/DiseaseMultiSelect';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DmAbiViewProps {
   onBack: () => void;
@@ -273,7 +274,150 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
 
 export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
   const [page, setPage] = useState(1);
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-patients');
   const [showForm, setShowForm] = useState(false);
+
+  // Custom Modal States
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    type: 'confirm' | 'alert';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (message: string, title = 'แจ้งเตือน') => {
+    setModal({
+      isOpen: true,
+      type: 'alert',
+      title,
+      message,
+    });
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title = 'ยืนยันการทำรายการ') => {
+    setModal({
+      isOpen: true,
+      type: 'confirm',
+      title,
+      message,
+      onConfirm: () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const renderCustomModal = () => {
+    if (!modal.isOpen) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(4px)',
+        animation: 'fadeIn 0.2s ease-out',
+        padding: '1rem'
+      }}>
+        <div style={{
+          background: 'var(--bg-surface-solid)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xl)',
+          width: '100%',
+          maxWidth: '400px',
+          padding: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          animation: 'scaleUp 0.15s ease-out'
+        }}>
+          <h3 style={{
+            fontSize: '1.05rem',
+            fontWeight: 700,
+            margin: 0,
+            color: modal.type === 'confirm' ? 'var(--warning)' : 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            {modal.type === 'confirm' ? '⚠️' : 'ℹ️'} {modal.title}
+          </h3>
+          
+          <p style={{
+            fontSize: '0.8125rem',
+            color: 'var(--text-secondary)',
+            margin: 0,
+            lineHeight: 1.5,
+            whiteSpace: 'pre-line'
+          }}>
+            {modal.message}
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '0.75rem',
+            marginTop: '0.5rem',
+            borderTop: '1px solid var(--border-color)',
+            paddingTop: '1rem'
+          }}>
+            {modal.type === 'confirm' ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    modal.onCancel?.();
+                    setModal(prev => ({ ...prev, isOpen: false }));
+                  }}
+                  style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => {
+                    modal.onConfirm?.();
+                  }}
+                  style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+                >
+                  ยืนยัน
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+              >
+                ตกลง
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Patient search states
   const [hnQuery, setHnQuery] = useState('');
@@ -644,11 +788,25 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
         setSaveSuccess(`บันทึกผลการตรวจ ABI สำเร็จ — วันนัดล่าสุด: ${lastAppointmentDate}`);
       }
 
-      // Reset form states
+      // Reset form states to default values
+      setHnQuery('');
+      setSelectedPatient(null);
+      setSearchResults([]);
+      setPatientNotFound(false);
+      setMiniPatientForm(initialPatientForm);
+      setFullNameInput('');
+      setShowExtraFields(false);
+      setLastAppointmentDate(TODAY);
+      setSelectedDoctor(null);
+      setDoctorQuery('');
+      setExamDate(TODAY);
+      setEditedDiseases('');
       setLtResult({ status: 'normal', value: '' });
       setRtResult({ status: 'normal', value: '' });
       setRemarks('');
       setEditingId(null);
+      setFormErrors({});
+      setShowForm(false);
       
       // Reload list
       fetchListData();
@@ -712,27 +870,30 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
       setRtResult(parseSide(row.rtResult));
       setRemarks(row.remarks === '—' ? '' : row.remarks);
     }
+    setSaveSuccess('');
+    setSaveError('');
     setShowForm(true);
   };
 
-  const handleDeleteRecord = async (row: any) => {
-    const isMock = !row.rawRecord || typeof row.id === 'number';
+  const handleDeleteRecord = (row: any) => {
+    const isMock = !row.rawRecord;
     const confirmMsg = `คุณต้องการลบข้อมูลการตรวจคัดกรอง ABI ของ ${row.name} (HN: ${row.hn}) ใช่หรือไม่?`;
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      if (!isMock) {
-        const { error } = await supabase
-          .from('patient_abi_assessments')
-          .delete()
-          .eq('id', row.rawRecord.id);
-        if (error) throw error;
+    
+    showConfirm(confirmMsg, async () => {
+      try {
+        if (!isMock) {
+          const { error } = await supabase
+            .from('patient_abi_assessments')
+            .delete()
+            .eq('id', row.rawRecord.id);
+          if (error) throw error;
+        }
+        showAlert('ลบข้อมูลการตรวจคัดกรอง ABI สำเร็จ', 'ลบข้อมูลสำเร็จ');
+        fetchListData(page, pageSize);
+      } catch (err: any) {
+        showAlert('ลบข้อมูลไม่สำเร็จ: ' + err.message, 'เกิดข้อผิดพลาด');
       }
-      alert('ลบข้อมูลการตรวจคัดกรอง ABI สำเร็จ');
-      fetchListData(page, pageSize);
-    } catch (err: any) {
-      alert('ลบข้อมูลไม่สำเร็จ: ' + err.message);
-    }
+    }, 'ยืนยันการลบข้อมูล');
   };
 
   const resetForm = () => {
@@ -1313,6 +1474,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
             <button className="btn btn-secondary" onClick={resetForm} style={{ width: 'auto', padding: '0.5rem 1.25rem' }}>ยกเลิก</button>
           </div>
         </div>
+        {renderCustomModal()}
       </div>
     );
   }
@@ -1325,13 +1487,15 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>ระบบบันทึกประวัติและผลการวิเคราะห์ดัชนี Ankle-Brachial Index แยกตารางเฉพาะ</p>
         </div>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <button className="btn btn-primary" onClick={() => { setSaveSuccess(''); setSaveError(''); setShowForm(true); }} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             เพิ่มข้อมูลการตรวจ
           </button>
           <button className="btn btn-secondary" onClick={onBack} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>← กลับหน้าหลัก</button>
         </div>
       </div>
+
+      {saveSuccess && <div className="alert alert-success" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: 'var(--radius-sm)', border: '1px solid #a7f3d0' }}>✅ {saveSuccess}</div>}
 
       {/* Criteria Legend */}
       <div style={{ marginBottom: '1.25rem', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(16,185,129,0.06) 100%)', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}>
@@ -1537,33 +1701,35 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
                             >
                               ✏️ แก้ไข
                             </button>
-                            <button
-                              className="btn btn-danger"
-                              onClick={() => handleDeleteRecord(row)}
-                              style={{
-                                width: 'auto',
-                                padding: '0.25rem 0.5rem',
-                                fontSize: '0.75rem',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '2px',
-                                background: '#fee2e2',
-                                color: '#dc2626',
-                                border: '1px solid #fca5a5',
-                                borderRadius: 'var(--radius-sm)',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                transition: 'all 0.15s'
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.background = '#fca5a5';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.background = '#fee2e2';
-                              }}
-                            >
-                              🗑️ ลบ
-                            </button>
+                            {canDelete && (
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleDeleteRecord(row)}
+                                style={{
+                                  width: 'auto',
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: '1px solid #fca5a5',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                  fontWeight: 600,
+                                  transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.background = '#fca5a5';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.background = '#fee2e2';
+                                }}
+                              >
+                                🗑️ ลบ
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1673,6 +1839,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
           </div>
         </div>
       )}
+      {renderCustomModal()}
     </div>
   );
 };

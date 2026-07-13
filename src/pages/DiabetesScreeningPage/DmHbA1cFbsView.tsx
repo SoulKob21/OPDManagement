@@ -4,6 +4,7 @@ import type { Patient, Doctor } from '../../types/opd';
 import { MOCK_DOCTORS } from '../../types/opd';
 import { BuddhistDateInput } from '../../components/BuddhistDateInput';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DmHbA1cFbsViewProps {
   onBack: () => void;
@@ -43,6 +44,8 @@ interface ListRow {
   fbsDate: string;
   fbsDateDisplay: string;
   fbs: number | null;
+  hba1cId?: string;
+  fbsId?: string;
 }
 // ── Mock data for local development ─────────────────────────
 const MOCK_LIST_DATA: ListRow[] = [
@@ -268,8 +271,183 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
 
 export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
   const [page, setPage] = useState(1);
+  const { allowedMenus } = useAuth();
+  const canDelete = allowedMenus === null || allowedMenus.includes('delete-patients');
   const [pageSize, setPageSize] = useState(10);
   const [showForm, setShowForm] = useState(false);
+
+  // Custom Modal States
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    type: 'confirm' | 'alert';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (message: string, title = 'แจ้งเตือน') => {
+    setModal({
+      isOpen: true,
+      type: 'alert',
+      title,
+      message,
+    });
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title = 'ยืนยันการทำรายการ') => {
+    setModal({
+      isOpen: true,
+      type: 'confirm',
+      title,
+      message,
+      onConfirm: () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const renderCustomModal = () => {
+    if (!modal.isOpen) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(4px)',
+        animation: 'fadeIn 0.2s ease-out',
+        padding: '1rem'
+      }}>
+        <div style={{
+          background: 'var(--bg-surface-solid)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-xl)',
+          width: '100%',
+          maxWidth: '400px',
+          padding: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          animation: 'scaleUp 0.15s ease-out'
+        }}>
+          <h3 style={{
+            fontSize: '1.05rem',
+            fontWeight: 700,
+            margin: 0,
+            color: modal.type === 'confirm' ? 'var(--warning)' : 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            {modal.type === 'confirm' ? '⚠️' : 'ℹ️'} {modal.title}
+          </h3>
+          
+          <p style={{
+            fontSize: '0.8125rem',
+            color: 'var(--text-secondary)',
+            margin: 0,
+            lineHeight: 1.5,
+            whiteSpace: 'pre-line'
+          }}>
+            {modal.message}
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '0.75rem',
+            marginTop: '0.5rem',
+            borderTop: '1px solid var(--border-color)',
+            paddingTop: '1rem'
+          }}>
+            {modal.type === 'confirm' ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    modal.onCancel?.();
+                    setModal(prev => ({ ...prev, isOpen: false }));
+                  }}
+                  style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => {
+                    modal.onConfirm?.();
+                  }}
+                  style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+                >
+                  ยืนยัน
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ width: 'auto', minWidth: '80px', padding: '0.4rem 1rem' }}
+              >
+                ตกลง
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleDeleteRecord = (row: ListRow) => {
+    const isMock = row.patientId.startsWith('mock-');
+    const confirmMsg = `คุณต้องการลบข้อมูลผลแลป HbA1C และ FBS ของ ${row.name} (HN: ${row.hn}) ใช่หรือไม่?`;
+    
+    showConfirm(confirmMsg, async () => {
+      try {
+        if (!isMock) {
+          // Delete HbA1c record
+          if (row.hba1cId) {
+            const { error: e1 } = await supabase
+              .from('patient_lab_results')
+              .delete()
+              .eq('id', row.hba1cId);
+            if (e1) throw e1;
+          }
+          // Delete FBS record
+          if (row.fbsId) {
+            const { error: e2 } = await supabase
+              .from('patient_lab_results')
+              .delete()
+              .eq('id', row.fbsId);
+            if (e2) throw e2;
+          }
+        }
+        showAlert('ลบข้อมูลผลแลปสำเร็จ', 'ลบข้อมูลสำเร็จ');
+        fetchListData(page, pageSize);
+      } catch (err: any) {
+        showAlert('ลบข้อมูลไม่สำเร็จ: ' + err.message, 'เกิดข้อผิดพลาด');
+      }
+    }, 'ยืนยันการลบข้อมูล');
+  };
 
   // ── Filter states ──────────────────────────────────────────
   const currentYearStr = new Date().getFullYear().toString();
@@ -395,7 +573,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       // ── PROD: fetch from Supabase with SQL filters ──────────
       let query = supabase
         .from('patient_lab_results')
-        .select('patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)', { count: 'exact' })
+        .select('id, patient_id, result_value, test_date, patients(id, hn, title, first_name, last_name, primary_doctor)', { count: 'exact' })
         .eq('test_name', 'Hemoglobin A1C')
         .eq('status', 'completed');
 
@@ -446,7 +624,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       if (patientIds.length > 0) {
         const { data, error: e2 } = await supabase
           .from('patient_lab_results')
-          .select('patient_id, result_value, test_date')
+          .select('id, patient_id, result_value, test_date')
           .eq('test_name', 'Fasting Blood Sugar')
           .eq('status', 'completed')
           .in('patient_id', patientIds)
@@ -456,7 +634,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       }
 
       // Build FBS map: patient_id -> latest FBS row
-      const fbsMap = new Map<string, { result_value: string; test_date: string }>();
+      const fbsMap = new Map<string, { id: string; result_value: string; test_date: string }>();
       (fbsRows || []).forEach(r => {
         if (!fbsMap.has(r.patient_id)) fbsMap.set(r.patient_id, r);
       });
@@ -478,6 +656,8 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           fbsDate: fbs?.test_date ?? '',
           fbsDateDisplay: fbs ? toThaiDate(fbs.test_date) : '',
           fbs: fbsVal === null || isNaN(fbsVal as number) ? null : fbsVal,
+          hba1cId: r.id,
+          fbsId: fbs?.id
         };
       });
       setListData(rows);
@@ -858,16 +1038,27 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       }
 
       setSaveSuccess(`บันทึกสำเร็จ ${inserts.length} รายการ — วันนัดล่าสุด: ${lastAppointmentDate}`);
-      setHba1cValue(''); setFbsValue('');
-      // Re-fetch latest labs for display
-      if (patientId) {
-        const [h, f] = await Promise.all([
-          supabase.from('patient_lab_results').select('result_value,test_date').eq('patient_id', patientId).eq('test_name', 'Hemoglobin A1C').order('test_date', { ascending: false }).limit(1).maybeSingle(),
-          supabase.from('patient_lab_results').select('result_value,test_date').eq('patient_id', patientId).eq('test_name', 'Fasting Blood Sugar').order('test_date', { ascending: false }).limit(1).maybeSingle(),
-        ]);
-        setLatestHba1c(h.data ?? null);
-        setLatestFbs(f.data ?? null);
-      }
+      
+      // Reset form states to default values
+      setHnQuery('');
+      setSelectedPatient(null);
+      setSearchResults([]);
+      setPatientNotFound(false);
+      setMiniPatientForm(initialPatientForm);
+      setFullNameInput('');
+      setShowExtraFields(false);
+      setLastAppointmentDate(TODAY);
+      setSelectedDoctor(null);
+      setDoctorQuery('');
+      setHba1cValue('');
+      setFbsValue('');
+      setHba1cDate(TODAY);
+      setFbsDate(TODAY);
+      setLatestHba1c(null);
+      setLatestFbs(null);
+      setFormErrors({});
+      setShowForm(false);
+      
       // Refresh the list view
       fetchListData();
     } catch (err: any) {
@@ -1149,6 +1340,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
             <button className="btn btn-secondary" onClick={resetForm} style={{ width: 'auto' }}>ยกเลิก</button>
           </div>
         </div>
+        {renderCustomModal()}
       </div>
     );
   }
@@ -1162,12 +1354,15 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>รายการผลตรวจ Hemoglobin A1C และ Fasting Blood Sugar</p>
         </div>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <button className="btn btn-primary" onClick={() => { setSaveSuccess(''); setSaveError(''); setShowForm(true); }} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             เพิ่มข้อมูลการตรวจ
           </button>
+          <button className="btn btn-secondary" onClick={onBack} style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.8125rem' }}>← กลับหน้าหลัก</button>
         </div>
       </div>
+
+      {saveSuccess && <div className="alert alert-success" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: 'var(--radius-sm)', border: '1px solid #a7f3d0' }}>✅ {saveSuccess}</div>}
 
       {/* Criteria Legend */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(245,158,11,0.06) 100%)', border: '1px solid var(--border-color)', fontSize: '0.875rem' }}>
@@ -1341,25 +1536,26 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                     <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>FBS (mg/dl)</th>
                     <th style={thStyle}>วันที่ตรวจ</th>
                     <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>ผลการคัดกรอง</th>
+                    <th style={{ ...thStyle, borderLeft: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {!hasSearched ? (
                     <tr>
-                      <td colSpan={9} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                      <td colSpan={10} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                         🔍 กรุณากดปุ่ม <strong>"ค้นหา"</strong> ด้านบนเพื่อแสดงรายการผลตรวจ
                       </td>
                     </tr>
                   ) : listLoading ? (
                     <tr>
-                      <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      <td colSpan={10} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                         <span style={{ display: 'inline-block', width: 20, height: 20, border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', verticalAlign: 'middle', marginRight: 8 }}></span>
                         กำลังโหลดข้อมูล...
                       </td>
                     </tr>
                   ) : pageData.length === 0 ? (
                     <tr>
-                      <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      <td colSpan={10} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                         ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา
                       </td>
                     </tr>
@@ -1390,6 +1586,37 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
                           <span style={{ display: 'inline-block', padding: '0.2rem 0.7rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 700, color: screening.color, background: screening.bg, whiteSpace: 'nowrap' }}>
                             {screening.label}
                           </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.875rem', borderLeft: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          {canDelete && (
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => handleDeleteRecord(row)}
+                              style={{
+                                width: 'auto',
+                                padding: '0.25rem 0.5rem',
+                                fontSize: '0.75rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                background: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fca5a5',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                transition: 'all 0.15s'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#fca5a5';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = '#fee2e2';
+                              }}
+                            >
+                              🗑️ ลบ
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1589,6 +1816,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
           </div>
         </div>
       )}
+      {renderCustomModal()}
     </div>
   );
 };
