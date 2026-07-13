@@ -10,7 +10,7 @@ interface ExcelRow {
   hn: string;
   full_name: string;
   order_date: string;
-  hba1c_result: string;
+  lab_result: string;
   _rowIndex: number;
   _error?: string;
 }
@@ -94,6 +94,7 @@ interface ImportLabPageProps {
 }
 
 const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack }) => {
+  const [labType, setLabType] = useState<'hba1c' | 'fbs'>('hba1c');
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [previewRows, setPreviewRows] = useState<ExcelRow[]>([]);
@@ -112,17 +113,21 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
 
   // ── Template Download ──────────────────────────────────────
   const downloadTemplate = () => {
+    const lastHeader = labType === 'hba1c' ? 'ผล Lab Hemoglobin A1C' : 'ผล Lab Fasting Blood Sugar';
+    const lastValue1 = labType === 'hba1c' ? '7.5' : '110';
+    const lastValue2 = labType === 'hba1c' ? '6.2' : '95';
+    
     const ws = XLSX.utils.aoa_to_sheet([
-      ['วันที่รับบริการ', 'HN', 'ชื่อ - นามสกุล', 'วันที่สั่ง (วันตรวจแลป)', 'ผล Lab Hemoglobin A1C'],
-      ['15/06/2025', 'HN-00001', 'นายสมชาย ใจดี', '14/06/2025', '7.5'],
-      ['15/06/2025', 'HN-00002', 'น.ส.สมหญิง รักสุขภาพ', '14/06/2025', '6.2'],
+      ['วันที่รับบริการ', 'HN', 'ชื่อ - นามสกุล', 'วันที่สั่ง (วันตรวจแลป)', lastHeader],
+      ['15/06/2025', 'HN-00001', 'นายสมชาย ใจดี', '14/06/2025', lastValue1],
+      ['15/06/2025', 'HN-00002', 'น.ส.สมหญิง รักสุขภาพ', '14/06/2025', lastValue2],
     ]);
     // Column widths
     ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 24 }, { wch: 22 }, { wch: 22 }];
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Lab HbA1C');
-    XLSX.writeFile(wb, 'template_lab_hba1c.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, labType === 'hba1c' ? 'Lab HbA1C' : 'Lab FBS');
+    XLSX.writeFile(wb, labType === 'hba1c' ? 'template_lab_hba1c.xlsx' : 'template_lab_fbs.xlsx');
   };
 
   // ── Parse Excel ────────────────────────────────────────────
@@ -143,9 +148,20 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const raw = XLSX.utils.sheet_to_json<any>(sheet, { header: 1, defval: '' });
 
+        // Check header row 0 for basic template matching
+        const headerRow = raw[0];
+        const errors: string[] = [];
+        if (headerRow && headerRow.length >= 5) {
+          const lastCol = String(headerRow[4] || '').toLowerCase();
+          if (labType === 'hba1c' && (lastCol.includes('fbs') || lastCol.includes('sugar') || lastCol.includes('fasting'))) {
+            errors.push('⚠️ คำเตือน: ไฟล์ที่อัปโหลดอาจเป็นผล FBS แต่ประเภทนำเข้าที่เลือกคือ HbA1C กรุณาตรวจสอบคอลัมน์และประเภทให้ถูกต้อง');
+          } else if (labType === 'fbs' && (lastCol.includes('hba1c') || lastCol.includes('hemoglobin'))) {
+            errors.push('⚠️ คำเตือน: ไฟล์ที่อัปโหลดอาจเป็นผล HbA1C แต่ประเภทนำเข้าที่เลือกคือ FBS กรุณาตรวจสอบคอลัมน์และประเภทให้ถูกต้อง');
+          }
+        }
+
         // Skip header row (row 0)
         const rows: ExcelRow[] = [];
-        const errors: string[] = [];
 
         for (let i = 1; i < raw.length; i++) {
           const r = raw[i];
@@ -156,17 +172,18 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
           const service_date = parseExcelDate(r[0]);
           const full_name = String(r[2] ?? '').trim();
           const order_date = parseExcelDate(r[3]);
-          const hba1c_result = String(r[4] ?? '').trim();
+          const lab_result = String(r[4] ?? '').trim();
 
           let rowError = '';
           if (!hn) rowError += `แถว ${i + 1}: ไม่มี HN; `;
           if (!service_date) rowError += `แถว ${i + 1}: วันที่รับบริการไม่ถูกต้อง; `;
-          if (!hba1c_result || isNaN(parseFloat(hba1c_result))) {
-            rowError += `แถว ${i + 1}: ผล HbA1C ไม่ใช่ตัวเลข; `;
+          if (!lab_result || isNaN(parseFloat(lab_result))) {
+            const labName = labType === 'hba1c' ? 'HbA1C' : 'FBS';
+            rowError += `แถว ${i + 1}: ผล ${labName} ไม่ใช่ตัวเลข; `;
           }
           if (rowError) errors.push(rowError);
 
-          rows.push({ service_date, hn, full_name, order_date, hba1c_result, _rowIndex: i + 1, _error: rowError || undefined });
+          rows.push({ service_date, hn, full_name, order_date, lab_result, _rowIndex: i + 1, _error: rowError || undefined });
         }
 
         setAllRows(rows);
@@ -215,6 +232,11 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
       setLogs([...importLogs]);
       setTimeout(() => logEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     };
+
+    const testName = labType === 'hba1c' ? 'Hemoglobin A1C' : 'Fasting Blood Sugar';
+    const unit = labType === 'hba1c' ? '%' : 'mg/dL';
+    const referenceRange = labType === 'hba1c' ? '< 7.0' : '70-100';
+    const labLabel = labType === 'hba1c' ? 'HbA1C' : 'FBS';
 
     for (let i = 0; i < validRows.length; i++) {
       const row = validRows[i];
@@ -282,7 +304,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
               appointment_date: row.service_date,
               appointment_type: 'walk-in',
               status: 'completed',
-              notes: 'นำเข้าจาก Excel - Lab HbA1C',
+              notes: `นำเข้าจาก Excel - Lab ${labLabel}`,
             });
           }
         }
@@ -293,7 +315,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
           .from('patient_lab_results')
           .select('id')
           .eq('patient_id', patientId)
-          .eq('test_name', 'Hemoglobin A1C')
+          .eq('test_name', testName)
           .eq('test_date', testDate)
           .maybeSingle();
 
@@ -305,7 +327,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
               hn: row.hn,
               name: row.full_name,
               status: 'skipped',
-              message: `⏭️ ข้ามแถว - มีผล HbA1C วันที่ ${testDate} อยู่แล้ว`,
+              message: `⏭️ ข้ามแถว - มีผล ${labLabel} วันที่ ${testDate} อยู่แล้ว`,
             });
             continue;
           } else {
@@ -313,7 +335,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
             await supabase
               .from('patient_lab_results')
               .update({
-                result_value: row.hba1c_result,
+                result_value: row.lab_result,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', existLab.id);
@@ -324,7 +346,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
               hn: row.hn,
               name: row.full_name,
               status: 'success',
-              message: `🔄 อัปเดตผล HbA1C = ${row.hba1c_result}% (วันที่: ${testDate})`,
+              message: `🔄 อัปเดตผล ${labLabel} = ${row.lab_result} ${unit} (วันที่: ${testDate})`,
             });
             continue;
           }
@@ -333,11 +355,11 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
         // ── Step 4: Insert lab result ──
         const { error: labErr } = await supabase.from('patient_lab_results').insert({
           patient_id: patientId,
-          test_name: 'Hemoglobin A1C',
+          test_name: testName,
           test_date: testDate,
-          result_value: row.hba1c_result,
-          unit: '%',
-          reference_range: '< 7.0',
+          result_value: row.lab_result,
+          unit: unit,
+          reference_range: referenceRange,
           notes: 'นำเข้าจาก Excel',
           status: 'completed',
         });
@@ -350,7 +372,7 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
           hn: row.hn,
           name: row.full_name,
           status: 'success',
-          message: `✅ บันทึกผล HbA1C = ${row.hba1c_result}% สำเร็จ (วันที่: ${testDate})`,
+          message: `✅ บันทึกผล ${labLabel} = ${row.lab_result} ${unit} สำเร็จ (วันที่: ${testDate})`,
         });
       } catch (err: any) {
         errorCount++;
@@ -396,10 +418,10 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-              📥 นำเข้าข้อมูล Lab Hemoglobin A1C
+              📥 นำเข้าข้อมูล Lab {labType === 'hba1c' ? 'Hemoglobin A1C' : 'Fasting Blood Sugar (FBS)'}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              อัพโหลดไฟล์ Excel เพื่อนำเข้าผลตรวจ HbA1C เข้าสู่ระบบฐานข้อมูล
+              อัพโหลดไฟล์ Excel เพื่อนำเข้าผลตรวจ {labType === 'hba1c' ? 'HbA1C' : 'FBS'} เข้าสู่ระบบฐานข้อมูล
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
@@ -425,10 +447,47 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
         <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
           <strong style={{ color: 'var(--text-primary)' }}>โครงสร้างคอลัมน์ Excel:</strong>{' '}
           <span style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: 4 }}>
-            {['A: วันที่รับบริการ', 'B: HN', 'C: ชื่อ - นามสกุล', 'D: วันที่สั่ง (วันตรวจแลป)', 'E: ผล Lab HbA1C'].map(c => (
+            {['A: วันที่รับบริการ', 'B: HN', 'C: ชื่อ - นามสกุล', 'D: วันที่สั่ง (วันตรวจแลป)', labType === 'hba1c' ? 'E: ผล Lab HbA1C' : 'E: ผล Lab FBS'].map(c => (
               <span key={c} style={{ background: 'var(--primary)', color: '#fff', borderRadius: 4, padding: '1px 8px', fontWeight: 500 }}>{c}</span>
             ))}
           </span>
+        </div>
+      </div>
+
+      {/* Lab Type Selector */}
+      <div className="dashboard-card" style={{ marginBottom: '1.25rem' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem' }}>🔬 เลือกประเภท Lab ที่ต้องการนำเข้า</h3>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          {[
+            { id: 'hba1c', name: '🩸 Hemoglobin A1C', desc: 'ผลแลป HbA1C (%)' },
+            { id: 'fbs', name: '🩺 Fasting Blood Sugar (FBS)', desc: 'ผลแลปน้ำตาลในเลือด (mg/dL)' }
+          ].map(type => {
+            const active = labType === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => {
+                  setLabType(type.id as 'hba1c' | 'fbs');
+                  resetAll();
+                }}
+                disabled={importing}
+                style={{
+                  flex: 1,
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  border: `2px solid ${active ? 'var(--primary)' : 'var(--border-color)'}`,
+                  background: active ? 'color-mix(in srgb, var(--primary) 8%, transparent)' : 'var(--bg-secondary)',
+                  color: active ? 'var(--primary)' : 'var(--text-primary)',
+                  cursor: importing ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{type.name}</div>
+                <div style={{ fontSize: '0.8rem', color: active ? 'var(--primary)' : 'var(--text-secondary)', marginTop: '0.25rem' }}>{type.desc}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -523,30 +582,34 @@ const ImportLabPage: React.FC<ImportLabPageProps> = ({ onRefreshStats, onBack })
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-secondary)' }}>
-                  {['#', 'วันที่รับบริการ', 'HN', 'ชื่อ - นามสกุล', 'วันที่สั่ง', 'ผล HbA1C (%)', 'สถานะ'].map(h => (
+                  {['#', 'วันที่รับบริการ', 'HN', 'ชื่อ - นามสกุล', 'วันที่สั่ง', labType === 'hba1c' ? 'ผล HbA1C (%)' : 'ผล FBS (mg/dL)', 'สถานะ'].map(h => (
                     <th key={h} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', borderBottom: '1px solid var(--border-color)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {previewRows.map((row, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', background: row._error ? 'color-mix(in srgb, #ef4444 8%, transparent)' : 'transparent' }}>
-                    <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)' }}>{row._rowIndex}</td>
-                    <td style={{ padding: '0.5rem 0.75rem' }}>{row.service_date || <span style={{ color: '#ef4444' }}>ไม่ระบุ</span>}</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{row.hn || <span style={{ color: '#ef4444' }}>ไม่ระบุ</span>}</td>
-                    <td style={{ padding: '0.5rem 0.75rem' }}>{row.full_name}</td>
-                    <td style={{ padding: '0.5rem 0.75rem' }}>{row.order_date}</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: parseFloat(row.hba1c_result) >= 7.0 ? '#ef4444' : '#22c55e' }}>
-                      {row.hba1c_result}
-                    </td>
-                    <td style={{ padding: '0.5rem 0.75rem' }}>
-                      {row._error
-                        ? <span style={{ color: '#ef4444', fontWeight: 600 }}>❌ มีข้อผิดพลาด</span>
-                        : <span style={{ color: '#22c55e' }}>✅ ถูกต้อง</span>
-                      }
-                    </td>
-                  </tr>
-                ))}
+                {previewRows.map((row, idx) => {
+                  const valNum = parseFloat(row.lab_result);
+                  const isAbnormal = labType === 'hba1c' ? valNum >= 7.0 : valNum > 100;
+                  return (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', background: row._error ? 'color-mix(in srgb, #ef4444 8%, transparent)' : 'transparent' }}>
+                      <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)' }}>{row._rowIndex}</td>
+                      <td style={{ padding: '0.5rem 0.75rem' }}>{row.service_date || <span style={{ color: '#ef4444' }}>ไม่ระบุ</span>}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{row.hn || <span style={{ color: '#ef4444' }}>ไม่ระบุ</span>}</td>
+                      <td style={{ padding: '0.5rem 0.75rem' }}>{row.full_name}</td>
+                      <td style={{ padding: '0.5rem 0.75rem' }}>{row.order_date}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: isAbnormal ? '#ef4444' : '#22c55e' }}>
+                        {row.lab_result}
+                      </td>
+                      <td style={{ padding: '0.5rem 0.75rem' }}>
+                        {row._error
+                          ? <span style={{ color: '#ef4444', fontWeight: 600 }}>❌ มีข้อผิดพลาด</span>
+                          : <span style={{ color: '#22c55e' }}>✅ ถูกต้อง</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {allRows.length > 10 && (
