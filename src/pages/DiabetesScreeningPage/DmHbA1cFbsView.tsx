@@ -550,7 +550,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
     setListLoading(true); setListError('');
     try {
       // ── DEV: use mock data ──────────────────────────────────
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL) {
         await new Promise(r => setTimeout(r, 300)); // simulate network
         const filtered = MOCK_LIST_DATA.filter(row => {
           const rowYear = row.hba1cDate.slice(0, 4);
@@ -697,7 +697,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
       }
       
       // ── DEV: use mock data ──────────────────────────────────
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL) {
         await new Promise(r => setTimeout(r, 600)); // simulate network delay
         
         const filteredMock = MOCK_LIST_DATA.filter(row => {

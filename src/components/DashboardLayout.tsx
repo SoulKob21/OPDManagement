@@ -232,7 +232,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 22C12 22 4 18 4 12V5l8-3 8 3v7c0 6-8 10-8 10z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
                       </svg>
-                      <span>🩸 HbA1C และ FBS</span>
+                      <span>HbA1C และ FBS</span>
                     </button>
                   </li>
                 )}
@@ -246,7 +246,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
                       </svg>
-                      <span>🦶 ตรวจเท้า Monofilament</span>
+                      <span>ตรวจเท้า Monofilament</span>
                     </button>
                   </li>
                 )}
@@ -260,7 +260,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                       </svg>
-                      <span>🫀 ตรวจคัดกรอง ABI</span>
+                      <span>ตรวจคัดกรอง ABI</span>
                     </button>
                   </li>
                 )}
@@ -274,7 +274,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
-                      <span>📥 นำเข้าข้อมูล Lab</span>
+                      <span>นำเข้าข้อมูล Lab</span>
                     </button>
                   </li>
                 )}

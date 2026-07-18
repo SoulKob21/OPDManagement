@@ -476,9 +476,9 @@ const FootResultInput = ({ side, value, onChange }: { side: 'Lt' | 'Rt'; value: 
     {value.status === 'abnormal' && (
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem', marginTop: '0.5rem' }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '0.75rem' }}>จำนวนตำแหน่ง *</label>
+          <label className="form-label" style={{ fontSize: '0.75rem' }}>จำนวนตำแหน่ง</label>
           <input type="number" min="1" max="10" className="form-input" placeholder="เช่น 3"
-            value={value.positions} onChange={e => onChange({ ...value, positions: e.target.value })} required />
+            value={value.positions} onChange={e => onChange({ ...value, positions: e.target.value })} />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label" style={{ fontSize: '0.75rem' }}>ระบุตำแหน่ง (ถ้ามี)</label>
@@ -741,7 +741,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
     setListLoading(true); setListError('');
     try {
       // ── DEV: use mock data ──────────────────────────────────
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL) {
         await new Promise(r => setTimeout(r, 300)); // simulate network
         const filtered = MOCK_DATA.filter(row => {
           const [d, m, yThai] = row.date.split('/');
@@ -871,7 +871,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
       }
       
       // ── DEV: use mock data ──────────────────────────────────
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL) {
         await new Promise(r => setTimeout(r, 600)); // simulate network delay
         
         const filteredMock = MOCK_DATA.filter(row => {
@@ -1160,10 +1160,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
       if (!miniPatientForm.hn.trim()) errors.hn = 'กรุณาระบุ HN';
       if (!miniPatientForm.first_name.trim()) errors.first_name = 'กรุณาระบุชื่อ';
     }
-    const hasAbnormalFoot = ltResult.status === 'abnormal' || rtResult.status === 'abnormal';
-    if (hasAbnormalFoot && !wagnerGrade) {
-      errors.wagner = 'กรุณาระบุระดับความรุนแรงของแผล (Wagner Classification)';
-    }
+
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -1597,9 +1594,8 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
                     🏥 การประเมินและจำแนกระดับความรุนแรงของแผลที่เท้า (Wagner Classification)
                   </h5>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8125rem' }}>ระดับความรุนแรงของแผล *</label>
+                    <label className="form-label" style={{ fontSize: '0.8125rem' }}>ระดับความรุนแรงของแผล</label>
                     <WagnerSelectSearch value={wagnerGrade} onChange={setWagnerGrade} />
-                    {formErrors.wagner && <span className="form-error" style={{ marginTop: '0.25rem', display: 'block' }}>{formErrors.wagner}</span>}
                   </div>
                 </div>
               )}

@@ -23,22 +23,22 @@ const MENU_OPTIONS = [
   { id: 'queues',     name: 'จัดการคิว OPD',          desc: 'รันลำดับคิวประจำวัน คัดกรองอาการ ส่งต่อรักษา และจ่ายยา' },
   { id: 'deliveries', name: 'ประวัติส่งยา',           desc: 'จัดการประวัติการส่งยาและดาวน์โหลดไฟล์ส่งข้อมูลทางไปรษณีย์' },
   // ── SPECIALIZED ───────────────────────────────
-  { id: 'diabetes-screening', name: '🛡️ คัดกรองเบาหวาน (สรุปรายปี)', desc: 'แสดงหน้าสรุปภาพรวมผลคัดกรองเบาหวานประจำปี' },
-  { id: 'hba1c-fbs',  name: '↳ 🩸 HbA1C และ FBS',    desc: 'บันทึกผลตรวจ Hemoglobin A1C และ Fasting Blood Sugar' },
-  { id: 'monofilament', name: '↳ 🦶 ตรวจเท้า Monofilament', desc: 'บันทึกผลการตรวจคัดกรองความรู้สึกที่เท้าด้วย Monofilament' },
-  { id: 'abi',        name: '↳ 🫀 ตรวจคัดกรอง ABI',  desc: 'บันทึกผลดัชนีวัดความดันโลหิตระหว่างข้อเท้าและแขน (PAD)' },
-  { id: 'import-lab', name: '↳ 📥 นำเข้าข้อมูล Lab', desc: 'นำเข้าผล Lab Hemoglobin A1C และข้อมูลคนไข้จากไฟล์ Excel' },
-  { id: 'questionnaire', name: '📋 ทำแบบสอบถาม',     desc: 'หน้ากรอกแบบประเมินและแบบสอบถามสุขภาพคนไข้' },
+  { id: 'diabetes-screening', name: 'คัดกรองเบาหวาน (สรุปรายปี)', desc: 'แสดงหน้าสรุปภาพรวมผลคัดกรองเบาหวานประจำปี' },
+  { id: 'hba1c-fbs',  name: '↳ HbA1C และ FBS',    desc: 'บันทึกผลตรวจ Hemoglobin A1C และ Fasting Blood Sugar' },
+  { id: 'monofilament', name: '↳ ตรวจเท้า Monofilament', desc: 'บันทึกผลการตรวจคัดกรองความรู้สึกที่เท้าด้วย Monofilament' },
+  { id: 'abi',        name: '↳ ตรวจคัดกรอง ABI',  desc: 'บันทึกผลดัชนีวัดความดันโลหิตระหว่างข้อเท้าและแขน (PAD)' },
+  { id: 'import-lab', name: '↳ นำเข้าข้อมูล Lab', desc: 'นำเข้าผล Lab Hemoglobin A1C และข้อมูลคนไข้จากไฟล์ Excel' },
+  { id: 'questionnaire', name: 'ทำแบบสอบถาม',     desc: 'หน้ากรอกแบบประเมินและแบบสอบถามสุขภาพคนไข้' },
   // ── MANAGEMENT ────────────────────────────────
   { id: 'doctors',    name: 'จัดการแพทย์',           desc: 'ฐานข้อมูลรายชื่อและตารางปฏิบัติงานของแพทย์' },
   { id: 'permissions', name: 'จัดการสิทธิ์การใช้งาน', desc: 'กำหนดสิทธิ์การมองเห็นเมนูต่าง ๆ ตาม User ID' },
   // ── ACTIONS ───────────────────────────────────
-  { id: 'delete-patients', name: '🗑️ ลบข้อมูลผู้ป่วย', desc: 'อนุญาตให้ลบระเบียนผู้ป่วย โรคประจำตัว และผลแลป' },
-  { id: 'delete-appointments', name: '🗑️ ยกเลิกนัดหมาย', desc: 'อนุญาตให้ยกเลิกรายการนัดหมายผู้ป่วย' },
-  { id: 'delete-queues', name: '🗑️ ยกเลิกคิว OPD', desc: 'อนุญาตให้ยกเลิกคิวรักษาผู้ป่วยประจำวัน' },
-  { id: 'delete-deliveries', name: '🗑️ ลบประวัติส่งยา', desc: 'อนุญาตให้ลบประวัติหรือรายการส่งยาทางไปรษณีย์' },
-  { id: 'delete-doctors', name: '🗑️ ลบข้อมูลแพทย์', desc: 'อนุญาตให้ลบข้อมูลแพทย์ออกจากระบบ' },
-  { id: 'delete-permissions', name: '🗑️ ลบการตั้งค่าสิทธิ์', desc: 'อนุญาตให้ลบการตั้งค่าสิทธิ์การใช้งานของผู้อื่น' },
+  { id: 'delete-patients', name: 'ลบข้อมูลผู้ป่วย', desc: 'อนุญาตให้ลบระเบียนผู้ป่วย โรคประจำตัว และผลแลป' },
+  { id: 'delete-appointments', name: 'ยกเลิกนัดหมาย', desc: 'อนุญาตให้ยกเลิกรายการนัดหมายผู้ป่วย' },
+  { id: 'delete-queues', name: 'ยกเลิกคิว OPD', desc: 'อนุญาตให้ยกเลิกคิวรักษาผู้ป่วยประจำวัน' },
+  { id: 'delete-deliveries', name: 'ลบประวัติส่งยา', desc: 'อนุญาตให้ลบประวัติหรือรายการส่งยาทางไปรษณีย์' },
+  { id: 'delete-doctors', name: 'ลบข้อมูลแพทย์', desc: 'อนุญาตให้ลบข้อมูลแพทย์ออกจากระบบ' },
+  { id: 'delete-permissions', name: 'ลบการตั้งค่าสิทธิ์', desc: 'อนุญาตให้ลบการตั้งค่าสิทธิ์การใช้งานของผู้อื่น' },
 ];
 
 export const PermissionsPage: React.FC = () => {
