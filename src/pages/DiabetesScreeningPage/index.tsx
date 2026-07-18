@@ -468,188 +468,192 @@ export const DiabetesScreeningPage: React.FC = () => {
   return (
     <DashboardLayout activeMenu="diabetes-screening" activeSubMenu={view} title="คัดกรองเบาหวาน">
       {/* Fiscal Year Selector Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-          ภาพรวมคัดกรองตามปีงบประมาณ
-        </h2>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(Number(e.target.value))}
-          style={{
-            padding: '0.5rem 1.25rem',
-            borderRadius: '0.5rem',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm)',
-            transition: 'border-color 0.2s ease',
-            outline: 'none'
-          }}
-          onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-          onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-        >
-          {years.map(y => (
-            <option key={y} value={y}>ปีงบประมาณ {y}</option>
-          ))}
-        </select>
-      </div>
+      {view === 'summary' && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+            ภาพรวมคัดกรองตามปีงบประมาณ
+          </h2>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            style={{
+              padding: '0.5rem 1.25rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'border-color 0.2s ease',
+              outline: 'none'
+            }}
+            onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+            onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+          >
+            {years.map(y => (
+              <option key={y} value={y}>ปีงบประมาณ {y}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Stats row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '1.25rem',
-        marginBottom: '1.5rem'
-      }}>
-        {/* Box 1 */}
+      {view === 'summary' && (
         <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-color)',
-          borderTop: '4px solid var(--primary)',
-          borderRadius: '0.75rem',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: 'default'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '1.5rem'
         }}>
+          {/* Box 1 */}
           <div style={{
-            background: 'var(--bg-secondary)',
-            borderBottom: '1px solid var(--border-color)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)'
-          }}>
-            ยอดผู้ป่วยเบาหวานทั้งหมดที่มีในระบบ
-          </div>
-          <div style={{
-            padding: '1.25rem 1rem',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-color)',
+            borderTop: '4px solid var(--primary)',
+            borderRadius: '0.75rem',
+            overflow: 'hidden',
             display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            background: 'var(--bg-elevated)'
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'default'
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>
-              {loading ? '...' : stats.totalHbA1c.toLocaleString()}
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderBottom: '1px solid var(--border-color)',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)'
+            }}>
+              ยอดผู้ป่วยเบาหวานทั้งหมดที่มีในระบบ
             </div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
+            <div style={{
+              padding: '1.25rem 1rem',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              background: 'var(--bg-elevated)'
+            }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                {loading ? '...' : stats.totalHbA1c.toLocaleString()}
+              </div>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
+            </div>
+          </div>
+
+          {/* Box 2 */}
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-color)',
+            borderTop: '4px solid var(--danger)',
+            borderRadius: '0.75rem',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'default'
+          }}>
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.03)',
+              borderBottom: '1px solid var(--border-color)',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)'
+            }}>
+              ยอดผู้ป่วยเบาหวานที่มีความผิดปกติทั้งหมดในระบบ
+            </div>
+            <div style={{
+              padding: '1.25rem 1rem',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              background: 'rgba(239, 68, 68, 0.01)'
+            }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--danger)' }}>
+                {loading ? '...' : stats.totalAbnormal.toLocaleString()}
+              </div>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
+            </div>
+          </div>
+
+          {/* Box 3 */}
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-color)',
+            borderTop: '4px solid var(--accent-2)',
+            borderRadius: '0.75rem',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'default'
+          }}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderBottom: '1px solid var(--border-color)',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)'
+            }}>
+              ยอดผู้ป่วยเบาหวานที่ได้รับการตรวจเท้าทั้งหมด
+            </div>
+            <div style={{
+              padding: '1.25rem 1rem',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              background: 'var(--bg-elevated)'
+            }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-2)' }}>
+                {loading ? '...' : stats.totalFoot.toLocaleString()}
+              </div>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
+            </div>
+          </div>
+
+          {/* Box 4 */}
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-color)',
+            borderTop: '4px solid var(--success)',
+            borderRadius: '0.75rem',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: 'default'
+          }}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderBottom: '1px solid var(--border-color)',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)'
+            }}>
+              ยอดผู้ป่วยเบาหวานที่ได้รับการตรวจ ABI ทั้งหมด
+            </div>
+            <div style={{
+              padding: '1.25rem 1rem',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              background: 'var(--bg-elevated)'
+            }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--success)' }}>
+                {loading ? '...' : stats.totalAbi.toLocaleString()}
+              </div>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Box 2 */}
-        <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-color)',
-          borderTop: '4px solid var(--danger)',
-          borderRadius: '0.75rem',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: 'default'
-        }}>
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.03)',
-            borderBottom: '1px solid var(--border-color)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)'
-          }}>
-            ยอดผู้ป่วยเบาหวานที่มีความผิดปกติทั้งหมดในระบบ
-          </div>
-          <div style={{
-            padding: '1.25rem 1rem',
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            background: 'rgba(239, 68, 68, 0.01)'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--danger)' }}>
-              {loading ? '...' : stats.totalAbnormal.toLocaleString()}
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
-          </div>
-        </div>
-
-        {/* Box 3 */}
-        <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-color)',
-          borderTop: '4px solid var(--accent-2)',
-          borderRadius: '0.75rem',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: 'default'
-        }}>
-          <div style={{
-            background: 'var(--bg-secondary)',
-            borderBottom: '1px solid var(--border-color)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)'
-          }}>
-            ยอดผู้ป่วยเบาหวานที่ได้รับการตรวจเท้าทั้งหมด
-          </div>
-          <div style={{
-            padding: '1.25rem 1rem',
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            background: 'var(--bg-elevated)'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-2)' }}>
-              {loading ? '...' : stats.totalFoot.toLocaleString()}
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
-          </div>
-        </div>
-
-        {/* Box 4 */}
-        <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-color)',
-          borderTop: '4px solid var(--success)',
-          borderRadius: '0.75rem',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: 'default'
-        }}>
-          <div style={{
-            background: 'var(--bg-secondary)',
-            borderBottom: '1px solid var(--border-color)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)'
-          }}>
-            ยอดผู้ป่วยเบาหวานที่ได้รับการตรวจ ABI ทั้งหมด
-          </div>
-          <div style={{
-            padding: '1.25rem 1rem',
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            background: 'var(--bg-elevated)'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--success)' }}>
-              {loading ? '...' : stats.totalAbi.toLocaleString()}
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ราย</span>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: '1.5rem' }}>
+      <div style={{ marginTop: view === 'summary' ? '1.5rem' : '0rem' }}>
         {renderContent()}
       </div>
     </DashboardLayout>

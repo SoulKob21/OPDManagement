@@ -251,7 +251,6 @@ export const DmSummaryView: React.FC<DmSummaryViewProps> = ({
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              <span style={{ fontSize: '1rem' }}>🩸</span>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                 เกณฑ์ระดับ HbA1c
               </h4>
@@ -292,7 +291,6 @@ export const DmSummaryView: React.FC<DmSummaryViewProps> = ({
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              <span style={{ fontSize: '1rem' }}>🍬</span>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                 เกณฑ์ระดับ FBS
               </h4>
@@ -333,7 +331,6 @@ export const DmSummaryView: React.FC<DmSummaryViewProps> = ({
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              <span style={{ fontSize: '1rem' }}>🦶</span>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                 เกณฑ์การตรวจเท้า (Monofilament)
               </h4>
@@ -370,7 +367,6 @@ export const DmSummaryView: React.FC<DmSummaryViewProps> = ({
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              <span style={{ fontSize: '1rem' }}>🩺</span>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                 เกณฑ์การตรวจหลอดเลือดแดง (ABI)
               </h4>

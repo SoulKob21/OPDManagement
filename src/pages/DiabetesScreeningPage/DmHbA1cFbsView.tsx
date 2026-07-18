@@ -1087,7 +1087,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
         </button>
 
         <div className="dashboard-card">
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem' }}>🩸 บันทึกผล HbA1C และ FBS</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.5rem' }}>บันทึกผล HbA1C และ FBS</h2>
 
           {/* ── Step 1: Patient Search ── */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem', background: 'var(--primary-subtle)' }}>
@@ -1306,7 +1306,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
 
                 {/* FBS */}
                 <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', color: '#f59e0b' }}>🩺 Fasting Blood Sugar (mg/dL)</h3>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', color: '#f59e0b' }}>Fasting Blood Sugar (mg/dL)</h3>
                   {latestFbs && (
                     <div style={{ background: 'color-mix(in srgb, #f59e0b 8%, transparent)', border: '1px solid color-mix(in srgb, #f59e0b 20%, transparent)', borderRadius: 8, padding: '0.5rem 0.875rem', marginBottom: '0.875rem', fontSize: '0.8rem' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>ผลล่าสุด ({latestFbs.test_date}):</span>
@@ -1335,7 +1335,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving || (!selectedPatient && !patientNotFound)} style={{ width: 'auto' }}>
-              {saving ? 'กำลังบันทึก...' : '💾 บันทึกผลตรวจ'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกผลตรวจ'}
             </button>
             <button className="btn btn-secondary" onClick={resetForm} style={{ width: 'auto' }}>ยกเลิก</button>
           </div>
@@ -1350,7 +1350,7 @@ export const DmHbA1cFbsView: React.FC<DmHbA1cFbsViewProps> = ({ onBack }) => {
     <div className="dashboard-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>🩸 การตรวจ HbA1C และ FBS</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>การตรวจ HbA1C และ FBS</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>รายการผลตรวจ Hemoglobin A1C และ Fasting Blood Sugar</p>
         </div>
         <div style={{ display: 'flex', gap: '0.625rem' }}>

@@ -419,7 +419,6 @@ const WagnerSelectSearch = ({ value, onChange }: { value: string; onChange: (v: 
 const FootResultInput = ({ side, value, onChange }: { side: 'Lt' | 'Rt'; value: FootResult; onChange: (v: FootResult) => void }) => (
   <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: '1.25rem', border: '1px solid var(--border-color)' }}>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.75rem' }}>
-      <span style={{ fontSize: '1.8rem', lineHeight: 1, marginBottom: '0.5rem', display: 'inline-block' }}>🦶</span>
       <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: side === 'Lt' ? '#6366f1' : '#f59e0b' }}>
         เท้า{side === 'Lt' ? 'ซ้าย (Lt.)' : 'ขวา (Rt.)'}
       </h3>
@@ -1439,7 +1438,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
         </button>
 
         <div className="dashboard-card" style={{ maxWidth: '100%' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>🦶 บันทึกผลการตรวจคัดกรองเท้าด้วย Monofilament</h2>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>บันทึกผลการตรวจคัดกรองเท้าด้วย Monofilament</h2>
 
           {/* Step 1 */}
           <div style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', marginBottom: '1.5rem', background: 'var(--primary-subtle)' }}>
@@ -1562,7 +1561,6 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
 
             <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.1rem' }}>🩺</span>
                 <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>โรคประจำตัวคนไข้:</span>
               </div>
               <div style={{ width: '100%', marginTop: '0.25rem' }}>
@@ -1861,7 +1859,7 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
     <div className="dashboard-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>🦶 การตรวจคัดกรองเท้าด้วย Monofilament</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>การตรวจคัดกรองเท้าด้วย Monofilament</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>รายการผลการตรวจความรู้สึกที่เท้าในผู้ป่วยเบาหวาน</p>
         </div>
         <div style={{ display: 'flex', gap: '0.625rem' }}>

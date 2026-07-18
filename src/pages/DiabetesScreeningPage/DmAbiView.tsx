@@ -1164,7 +1164,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
 
         <div className="dashboard-card" style={{ maxWidth: '100%' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-            🫀 {editingId ? 'แก้ไขข้อมูลการตรวจคัดกรอง ABI' : 'บันทึกผลการตรวจคัดกรอง ABI'}
+            {editingId ? 'แก้ไขข้อมูลการตรวจคัดกรอง ABI' : 'บันทึกผลการตรวจคัดกรอง ABI'}
           </h2>
 
           {/* Step 1 */}
@@ -1290,7 +1290,6 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
             {/* Disease select */}
             <div style={{ marginBottom: '1.25rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.1rem' }}>🩺</span>
                 <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>โรคประจำตัวคนไข้:</span>
               </div>
               <div style={{ width: '100%', marginTop: '0.25rem' }}>
@@ -1483,7 +1482,7 @@ export const DmAbiView: React.FC<DmAbiViewProps> = ({ onBack }) => {
     <div className="dashboard-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>🫀 การตรวจคัดกรอง ABI</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>การตรวจคัดกรอง ABI</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>ระบบบันทึกประวัติและผลการวิเคราะห์ดัชนี Ankle-Brachial Index แยกตารางเฉพาะ</p>
         </div>
         <div style={{ display: 'flex', gap: '0.625rem' }}>
