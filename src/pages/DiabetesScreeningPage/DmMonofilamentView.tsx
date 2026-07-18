@@ -1032,7 +1032,9 @@ export const DmMonofilamentView: React.FC<DmMonofilamentViewProps> = ({ onBack }
     }
   };
 
-  const displayRows = dbResults.length > 0
+  const isMocking = import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL;
+
+  const displayRows = (dbResults.length > 0 || !isMocking)
     ? dbResults.map((r, index) => {
         const patient = r.patients;
         const exam = parseFootExamNotes(r.notes);
