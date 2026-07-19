@@ -15,3 +15,10 @@ jobs:
           curl -i -X GET "https://zwjyurmwfvyjvbtjaqvh.supabase.co/rest/v1/patients?limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3anl1cm13ZnZ5anZidGphcXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDM2ODEsImV4cCI6MjA5OTUxOTY4MX0.dWBgbczhSeDHQFFGU1F6viBgHq7CdnWHX2RFyMOwSlo' }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3anl1cm13ZnZ5anZidGphcXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NDM2ODEsImV4cCI6MjA5OTUxOTY4MX0.dWBgbczhSeDHQFFGU1F6viBgHq7CdnWHX2RFyMOwSlo' }}"
+
+      - name: Ping Old Supabase REST API (Query Patients)
+        run: |
+          curl -i -X GET "https://vnugzaaoejitezbpmjli.supabase.co/rest/v1/patients?limit=1" \
+            -H "apikey: ${{ secrets.OLD_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudWd6YWFvZWppdGV6YnBtamxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTI2NzQsImV4cCI6MjA5NzM2ODY3NH0.dwnUpzy1rbj9d1P3BlZiDiMsHVWZopP8yIwZYevkIHw' }}" \
+            -H "Authorization: Bearer ${{ secrets.OLD_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZudWd6YWFvZWppdGV6YnBtamxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTI2NzQsImV4cCI6MjA5NzM2ODY3NH0.dwnUpzy1rbj9d1P3BlZiDiMsHVWZopP8yIwZYevkIHw' }}"
+
